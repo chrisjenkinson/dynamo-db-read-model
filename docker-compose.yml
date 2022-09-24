@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  dynamodb-local:
+#    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+#    command: "-jar DynamoDBLocal.jar -inMemory"
+    image: "amazon/dynamodb-local:latest"
+    ports:
+      - "8000:8000"
+#    volumes:
+#      - "./docker/dynamodb:/home/dynamodblocal/data"
+#    working_dir: /home/dynamodblocal
+  
+  php:
+    depends_on:
+      - dynamodb-local
+    image: mcr.microsoft.com/vscode/devcontainers/php:8.1
+#    image: php:8.1
+    container_name: php
+    environment:
+      AWS_ACCESS_KEY_ID: 'none'
+      AWS_SECRET_ACCESS_KEY: 'none'

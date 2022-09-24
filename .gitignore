@@ -1,0 +1,6 @@
+.phpunit.cache
+composer.lock
+coverage/
+infection.html
+infection.log
+vendor/
