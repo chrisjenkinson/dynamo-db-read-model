@@ -10,11 +10,9 @@ use Broadway\ReadModel\Repository;
 use Broadway\ReadModel\Testing\RepositoryTestCase;
 use Broadway\ReadModel\Testing\RepositoryTestReadModel;
 use Broadway\Serializer\SimpleInterfaceSerializer;
-use chrisjenkinson\DynamoDbReadModel\DynamoDbRepository;
+use chrisjenkinson\DynamoDbReadModel\DynamoDbRepositoryFactory;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbTableManager;
 use chrisjenkinson\DynamoDbReadModel\InputBuilder;
-use chrisjenkinson\DynamoDbReadModel\JsonDecoder;
-use chrisjenkinson\DynamoDbReadModel\JsonEncoder;
 
 final class DynamoDbRepositoryTest extends RepositoryTestCase
 {
@@ -28,18 +26,13 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         $tableName = 'table';
 
         $tableManager = new DynamoDbTableManager($client, new InputBuilder(), $tableName);
+        $serializer   = new SimpleInterfaceSerializer();
+        $factory      = new DynamoDbRepositoryFactory($client, $serializer, $tableName);
 
         $tableManager->deleteTable();
         $tableManager->createTable();
 
-        $inputBuilder = new InputBuilder();
-        $serializer   = new SimpleInterfaceSerializer();
-        $jsonEncoder  = new JsonEncoder();
-        $jsonDecoder  = new JsonDecoder();
-
-        $repository = new DynamoDbRepository($client, $inputBuilder, $serializer, $jsonEncoder, $jsonDecoder, $tableName, 'name', RepositoryTestReadModel::class);
-
-        return $repository;
+        return $factory->create('name', RepositoryTestReadModel::class);
     }
 
     /**
