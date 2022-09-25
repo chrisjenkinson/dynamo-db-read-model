@@ -6,7 +6,7 @@ namespace chrisjenkinson\DynamoDbReadModel;
 
 use AsyncAws\DynamoDb\DynamoDbClient;
 
-final class DynamoDbTableManager
+final class DynamoDbTableManager implements TableManagerInterface
 {
     public function __construct(
         private readonly DynamoDbClient $client,
