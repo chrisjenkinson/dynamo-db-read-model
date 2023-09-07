@@ -3,7 +3,7 @@
     "description": "A DynamoDB ReadModel implementation for Broadway.",
     "type": "library",
     "require": {
-        "async-aws/dynamo-db": "^1.3.0",
+        "async-aws/dynamo-db": "^1.3.0 || ^3.0.0",
         "broadway/broadway": "^2.4.0",
         "ext-json": "*"
     },
