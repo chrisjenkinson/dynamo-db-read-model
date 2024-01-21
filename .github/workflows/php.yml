@@ -19,7 +19,7 @@ jobs:
           - 8000:8000/tcp
     strategy:
       matrix:
-        php-versions: ['8.1', '8.2']
+        php-versions: ['8.1', '8.2', '8.3']
     env: 
       AWS_ACCESS_KEY_ID: 'none'
       AWS_SECRET_ACCESS_KEY: 'none'
