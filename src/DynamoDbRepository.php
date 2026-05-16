@@ -52,13 +52,7 @@ final class DynamoDbRepository implements Repository
             throw new UnexpectedEncodedData('Data', 'string', $encodedData);
         }
 
-        $data = $this->serializer->deserialize($this->jsonDecoder->decode($encodedData));
-
-        if (!($data instanceof $this->class && $data instanceof Identifiable)) {
-            throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
-        }
-
-        return $data;
+        return $this->deserializeReadModel($encodedData);
     }
 
     /**
@@ -85,13 +79,7 @@ final class DynamoDbRepository implements Repository
                 throw new UnexpectedEncodedData('Data', 'string', $encodedData);
             }
 
-            $data = $this->serializer->deserialize($this->jsonDecoder->decode($encodedData));
-
-            if (!($data instanceof $this->class && $data instanceof Identifiable)) {
-                throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
-            }
-
-            $items[] = $data;
+            $items[] = $this->deserializeReadModel($encodedData);
         }
 
         $items = array_filter($items, function (Identifiable $model) use ($fields): bool {
@@ -148,13 +136,7 @@ final class DynamoDbRepository implements Repository
                 throw new UnexpectedEncodedData('Data', 'string', $encodedData);
             }
 
-            $data = $this->serializer->deserialize($this->jsonDecoder->decode($encodedData));
-
-            if (!($data instanceof $this->class && $data instanceof Identifiable)) {
-                throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
-            }
-
-            $items[] = $data;
+            $items[] = $this->deserializeReadModel($encodedData);
         }
 
         return $items;
@@ -163,5 +145,39 @@ final class DynamoDbRepository implements Repository
     public function remove($id): void
     {
         $this->client->deleteItem($this->inputBuilder->buildDeleteItemInput($this->table, $this->name, (string) $id));
+    }
+
+    private function deserializeReadModel(string $encodedData): Identifiable
+    {
+        $serializedData = $this->jsonDecoder->decode($encodedData);
+
+        if (!isset($serializedData['class']) || !is_string($serializedData['class'])) {
+            throw new UnexpectedReadModel(actual: $this->describeSerializedClass($serializedData['class'] ?? null), expected: $this->class);
+        }
+
+        if ($serializedData['class'] !== $this->class) {
+            throw new UnexpectedReadModel(actual: $serializedData['class'], expected: $this->class);
+        }
+
+        $data = $this->serializer->deserialize($serializedData);
+
+        if (!($data instanceof $this->class && $data instanceof Identifiable)) {
+            throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
+        }
+
+        return $data;
+    }
+
+    private function describeSerializedClass(mixed $class): string
+    {
+        if (is_string($class)) {
+            return $class;
+        }
+
+        if (is_scalar($class) || null === $class) {
+            return var_export($class, true);
+        }
+
+        return get_debug_type($class);
     }
 }
