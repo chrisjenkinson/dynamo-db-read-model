@@ -8,10 +8,10 @@ use AsyncAws\DynamoDb\DynamoDbClient;
 use Broadway\ReadModel\Identifiable;
 use Broadway\ReadModel\Repository;
 use Broadway\Serializer\Serializer;
-use ReflectionClass;
+use chrisjenkinson\DynamoDbReadModel\Exception\CannotFilterWithNonexistentKey;
 use chrisjenkinson\DynamoDbReadModel\Exception\UnexpectedEncodedData;
 use chrisjenkinson\DynamoDbReadModel\Exception\UnexpectedReadModel;
-use chrisjenkinson\DynamoDbReadModel\Exception\CannotFilterWithNonexistentKey;
+use ReflectionClass;
 
 final class DynamoDbRepository implements Repository
 {

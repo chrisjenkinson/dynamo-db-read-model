@@ -22,7 +22,6 @@ return static function (ECSConfig $ecsConfig): void {
         SetList::ARRAY,
         SetList::DOCBLOCK,
         SetList::PSR_12,
-        SetList::STRICT,
     ]);
 
     $ecsConfig->ruleWithConfiguration(ArraySyntaxFixer::class, [

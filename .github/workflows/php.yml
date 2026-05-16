@@ -9,32 +9,53 @@ permissions:
 
 jobs:
   build:
-    name: PHP ${{ matrix.php-versions }}
+    name: PHP ${{ matrix.php-version }} / async-aws/dynamo-db ${{ matrix.async-aws-dynamo-db }}
     runs-on: ubuntu-latest
-    container: ubuntu:latest
     services:
       dynamodb-local:
         image: amazon/dynamodb-local:1.22.0
         ports:
           - 8000:8000/tcp
     strategy:
+      fail-fast: false
       matrix:
-        php-versions: ['8.1', '8.2', '8.3']
+        include:
+          - php-version: '8.2'
+            async-aws-dynamo-db: '^1.3.0'
+          - php-version: '8.2'
+            async-aws-dynamo-db: '^2.0.0'
+          - php-version: '8.2'
+            async-aws-dynamo-db: '^3.0.0'
+          - php-version: '8.3'
+            async-aws-dynamo-db: '^1.3.0'
+          - php-version: '8.3'
+            async-aws-dynamo-db: '^2.0.0'
+          - php-version: '8.3'
+            async-aws-dynamo-db: '^3.0.0'
+          - php-version: '8.4'
+            async-aws-dynamo-db: '^1.3.0'
+          - php-version: '8.4'
+            async-aws-dynamo-db: '^2.0.0'
+          - php-version: '8.4'
+            async-aws-dynamo-db: '^3.0.0'
+          - php-version: '8.5'
+            async-aws-dynamo-db: '^1.3.0'
+          - php-version: '8.5'
+            async-aws-dynamo-db: '^2.0.0'
+          - php-version: '8.5'
+            async-aws-dynamo-db: '^3.0.0'
     env: 
       AWS_ACCESS_KEY_ID: 'none'
       AWS_SECRET_ACCESS_KEY: 'none'
+      DYNAMODB_ENDPOINT: 'http://127.0.0.1:8000'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install git
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends git
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: ${{ matrix.php-version }}
           tools: composer
           coverage: xdebug
 
@@ -46,12 +67,14 @@ jobs:
         uses: actions/cache@v5
         with:
           path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-dynamodb-${{ matrix.async-aws-dynamo-db }}-${{ hashFiles('**/composer.json') }}
           restore-keys: |
-            ${{ runner.os }}-php-
+            ${{ runner.os }}-php-${{ matrix.php-version }}-dynamodb-${{ matrix.async-aws-dynamo-db }}-
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: |
+          composer require async-aws/dynamo-db:${{ matrix.async-aws-dynamo-db }} --no-update
+          composer update --prefer-dist --no-progress
 
       - name: Run phpunit
         run: composer run-script phpunit

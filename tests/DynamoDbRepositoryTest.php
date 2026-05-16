@@ -19,9 +19,9 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
     protected function createRepository(): Repository
     {
         $client = new DynamoDbClient(Configuration::create([
-            'endpoint'        => 'http://dynamodb-local:8000',
-            'accessKeyId'     => '',
-            'accessKeySecret' => '',
+            'endpoint'        => getenv('DYNAMODB_ENDPOINT') ?: 'http://dynamodb-local:8000',
+            'accessKeyId'     => getenv('AWS_ACCESS_KEY_ID') ?: 'none',
+            'accessKeySecret' => getenv('AWS_SECRET_ACCESS_KEY') ?: 'none',
         ]));
         $tableName = 'table';
 
