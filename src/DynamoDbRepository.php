@@ -33,7 +33,7 @@ final class DynamoDbRepository implements Repository
 
         $putItemInput = $this->inputBuilder->buildPutItemInput($this->table, $this->name, $data->getId(), $encodedData);
 
-        $this->client->putItem($putItemInput);
+        $this->client->putItem($putItemInput)->resolve();
     }
 
     public function find($id): ?Identifiable
@@ -144,7 +144,7 @@ final class DynamoDbRepository implements Repository
 
     public function remove($id): void
     {
-        $this->client->deleteItem($this->inputBuilder->buildDeleteItemInput($this->table, $this->name, (string) $id));
+        $this->client->deleteItem($this->inputBuilder->buildDeleteItemInput($this->table, $this->name, (string) $id))->resolve();
     }
 
     private function deserializeReadModel(string $encodedData): Identifiable
