@@ -25,6 +25,14 @@ The library queries by `Name` to load all read models for a repository, and uses
 `Name` + `Id` for single-item reads, writes, and deletes. It does not require
 secondary indexes.
 
+`find($id)` uses the full primary key (`Name` + `Id`) and is the bounded lookup
+to prefer for production read paths. `findAll()` queries the full repository
+partition for the configured `Name` and returns every read model in memory.
+`findBy()` also queries the full repository partition, deserializes each read
+model, and then filters in PHP. For production-sized collections, avoid using
+`findAll()` or `findBy()` on request paths unless that full-partition work is
+intentional.
+
 Example AWS CLI setup:
 
 ```bash
