@@ -152,7 +152,7 @@ final class DynamoDbRepository implements Repository
         $serializedData = $this->jsonDecoder->decode($encodedData);
 
         if (!isset($serializedData['class']) || !is_string($serializedData['class'])) {
-            throw new UnexpectedReadModel(actual: $this->describeSerializedClass($serializedData['class'] ?? null), expected: $this->class);
+            throw new UnexpectedReadModel(actual: get_debug_type($serializedData['class'] ?? null), expected: $this->class);
         }
 
         if ($serializedData['class'] !== $this->class) {
@@ -166,18 +166,5 @@ final class DynamoDbRepository implements Repository
         }
 
         return $data;
-    }
-
-    private function describeSerializedClass(mixed $class): string
-    {
-        if (is_string($class)) {
-            return $class;
-        }
-
-        if (is_scalar($class) || null === $class) {
-            return var_export($class, true);
-        }
-
-        return get_debug_type($class);
     }
 }
