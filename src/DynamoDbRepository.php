@@ -23,17 +23,26 @@ final class DynamoDbRepository implements Repository
         private readonly JsonDecoder $jsonDecoder,
         private readonly string $table,
         private readonly string $name,
-        private readonly string $class
+        private readonly string $class,
+        private readonly ReadModelSnapshotStore $snapshots
     ) {
     }
 
     public function save(Identifiable $data): void
     {
-        $encodedData = $this->jsonEncoder->encode($this->serializer->serialize($data));
+        $id             = $data->getId();
+        $serializedData = $this->serializer->serialize($data);
+        $snapshot       = new ReadModelSnapshot($this->table, $this->name, $this->class, $id, $serializedData);
 
-        $putItemInput = $this->inputBuilder->buildPutItemInput($this->table, $this->name, $data->getId(), $encodedData);
+        if ($this->snapshots->hasSameSnapshot($snapshot)) {
+            return;
+        }
+
+        $encodedData  = $this->jsonEncoder->encode($serializedData);
+        $putItemInput = $this->inputBuilder->buildPutItemInput($this->table, $this->name, $id, $encodedData);
 
         $this->client->putItem($putItemInput)->resolve();
+        $this->snapshots->remember($snapshot);
     }
 
     public function find($id): ?Identifiable
@@ -52,7 +61,7 @@ final class DynamoDbRepository implements Repository
             throw new UnexpectedEncodedData('Data', 'string', $encodedData);
         }
 
-        return $this->deserializeReadModel($encodedData);
+        return $this->deserializeReadModel($encodedData, (string) $id);
     }
 
     /**
@@ -79,7 +88,13 @@ final class DynamoDbRepository implements Repository
                 throw new UnexpectedEncodedData('Data', 'string', $encodedData);
             }
 
-            $items[] = $this->deserializeReadModel($encodedData);
+            $observedId = $item['Id']->getS();
+
+            if (!is_string($observedId)) {
+                throw new UnexpectedEncodedData('Id', 'string', $observedId);
+            }
+
+            $items[] = $this->deserializeReadModel($encodedData, $observedId);
         }
 
         $items = array_filter($items, function (Identifiable $model) use ($fields): bool {
@@ -136,7 +151,13 @@ final class DynamoDbRepository implements Repository
                 throw new UnexpectedEncodedData('Data', 'string', $encodedData);
             }
 
-            $items[] = $this->deserializeReadModel($encodedData);
+            $observedId = $item['Id']->getS();
+
+            if (!is_string($observedId)) {
+                throw new UnexpectedEncodedData('Id', 'string', $observedId);
+            }
+
+            $items[] = $this->deserializeReadModel($encodedData, $observedId);
         }
 
         return $items;
@@ -145,9 +166,10 @@ final class DynamoDbRepository implements Repository
     public function remove($id): void
     {
         $this->client->deleteItem($this->inputBuilder->buildDeleteItemInput($this->table, $this->name, (string) $id))->resolve();
+        $this->snapshots->forget($this->table, $this->name, $this->class, (string) $id);
     }
 
-    private function deserializeReadModel(string $encodedData): Identifiable
+    private function deserializeReadModel(string $encodedData, string $observedId): Identifiable
     {
         $serializedData = $this->jsonDecoder->decode($encodedData);
 
@@ -163,6 +185,12 @@ final class DynamoDbRepository implements Repository
 
         if (!($data instanceof $this->class && $data instanceof Identifiable)) {
             throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
+        }
+
+        $id = $data->getId();
+
+        if ($id === $observedId) {
+            $this->snapshots->remember(new ReadModelSnapshot($this->table, $this->name, $this->class, $id, $serializedData));
         }
 
         return $data;

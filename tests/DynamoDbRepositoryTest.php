@@ -18,6 +18,7 @@ use chrisjenkinson\DynamoDbReadModel\Exception\UnexpectedReadModel;
 use chrisjenkinson\DynamoDbReadModel\InputBuilder;
 use chrisjenkinson\DynamoDbReadModel\JsonDecoder;
 use chrisjenkinson\DynamoDbReadModel\JsonEncoder;
+use chrisjenkinson\DynamoDbReadModel\ReadModelSnapshotStore;
 
 final class DynamoDbRepositoryTest extends RepositoryTestCase
 {
@@ -31,7 +32,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
         $tableManager = new DynamoDbTableManager($client, new InputBuilder(), self::TABLE_NAME);
         $serializer   = new SimpleInterfaceSerializer();
-        $factory      = new DynamoDbRepositoryFactory($client, $serializer, self::TABLE_NAME);
+        $factory      = new DynamoDbRepositoryFactory($client, $serializer, self::TABLE_NAME, new ReadModelSnapshotStore());
 
         $tableManager->deleteTable();
         $tableManager->createTable();
@@ -171,7 +172,8 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
             new JsonDecoder(),
             self::TABLE_NAME,
             'non-identifiable',
-            NonIdentifiableSerializableReadModel::class
+            NonIdentifiableSerializableReadModel::class,
+            new ReadModelSnapshotStore()
         );
 
         $this->expectException(UnexpectedReadModel::class);

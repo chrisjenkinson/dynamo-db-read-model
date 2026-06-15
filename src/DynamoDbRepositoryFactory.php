@@ -14,12 +14,18 @@ final class DynamoDbRepositoryFactory implements RepositoryFactory
     public function __construct(
         private readonly DynamoDbClient $client,
         private readonly Serializer $serializer,
-        private readonly string $table
+        private readonly string $table,
+        private readonly ReadModelSnapshotStore $snapshots
     ) {
     }
 
     public function create(string $name, string $class): Repository
     {
-        return new DynamoDbRepository($this->client, new InputBuilder(), $this->serializer, new JsonEncoder(), new JsonDecoder(), $this->table, $name, $class);
+        return new DynamoDbRepository($this->client, new InputBuilder(), $this->serializer, new JsonEncoder(), new JsonDecoder(), $this->table, $name, $class, $this->snapshots);
+    }
+
+    public function clearSnapshots(): void
+    {
+        $this->snapshots->clear();
     }
 }

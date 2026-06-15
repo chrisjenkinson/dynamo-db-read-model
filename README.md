@@ -33,6 +33,38 @@ model, and then filters in PHP. For production-sized collections, avoid using
 `findAll()` or `findBy()` on request paths unless that full-partition work is
 intentional.
 
+## Snapshot Store
+
+This release changes the public constructors for `DynamoDbRepositoryFactory`
+and `DynamoDbRepository`.
+
+`DynamoDbRepositoryFactory` requires a `ReadModelSnapshotStore` so repositories
+created by the same factory can suppress unchanged physical writes without an
+extra DynamoDB read:
+
+```php
+$factory = new DynamoDbRepositoryFactory($client, $serializer, 'read-models', new ReadModelSnapshotStore());
+```
+
+Direct `DynamoDbRepository` construction also needs the same dependency:
+
+```php
+$repository = new DynamoDbRepository(
+    $client,
+    $inputBuilder,
+    $serializer,
+    $jsonEncoder,
+    $jsonDecoder,
+    'read-models',
+    'repository-name',
+    MyReadModel::class,
+    new ReadModelSnapshotStore()
+);
+```
+
+Call `$factory->clearSnapshots()` before reusing the same factory after deleting
+or recreating the backing read-model table.
+
 Example AWS CLI setup:
 
 ```bash
