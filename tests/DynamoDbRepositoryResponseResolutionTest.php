@@ -15,6 +15,7 @@ use chrisjenkinson\DynamoDbReadModel\DynamoDbRepository;
 use chrisjenkinson\DynamoDbReadModel\InputBuilder;
 use chrisjenkinson\DynamoDbReadModel\JsonDecoder;
 use chrisjenkinson\DynamoDbReadModel\JsonEncoder;
+use chrisjenkinson\DynamoDbReadModel\ReadModelSnapshotStore;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -59,7 +60,8 @@ final class DynamoDbRepositoryResponseResolutionTest extends TestCase
             new JsonDecoder(),
             'table',
             'name',
-            RepositoryTestReadModel::class
+            RepositoryTestReadModel::class,
+            new ReadModelSnapshotStore()
         );
     }
 
