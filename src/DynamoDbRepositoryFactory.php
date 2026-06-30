@@ -26,7 +26,7 @@ final class DynamoDbRepositoryFactory implements RepositoryFactory
 
     public function createDeferred(string $name, string $class): FlushableRepository
     {
-        return new DeferredDynamoDbRepository($this->createStorage($name, $class), new ReadModelFieldMatcher(), $this->table, $name, $class);
+        return new DeferredDynamoDbRepository($this->createStorage($name, $class), new ReadModelFieldMatcher());
     }
 
     public function clearSnapshots(): void

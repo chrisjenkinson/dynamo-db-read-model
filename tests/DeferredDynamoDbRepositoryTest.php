@@ -759,10 +759,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     {
         return new DeferredDynamoDbRepository(
             $this->createStorage($client, RepositoryTestReadModel::class),
-            new ReadModelFieldMatcher(),
-            'table',
-            'name',
-            RepositoryTestReadModel::class
+            new ReadModelFieldMatcher()
         );
     }
 
@@ -770,10 +767,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     {
         return new DeferredDynamoDbRepository(
             $this->createStorage($client, MutableRepositoryTestReadModel::class),
-            new ReadModelFieldMatcher(),
-            'table',
-            'name',
-            MutableRepositoryTestReadModel::class
+            new ReadModelFieldMatcher()
         );
     }
 

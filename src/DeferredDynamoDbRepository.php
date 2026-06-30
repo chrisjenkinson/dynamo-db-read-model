@@ -25,10 +25,7 @@ final class DeferredDynamoDbRepository implements FlushableRepository
 
     public function __construct(
         private readonly DynamoDbReadModelStorage $storage,
-        private readonly ReadModelFieldMatcher $matcher,
-        private readonly ?string $table = null,
-        private readonly ?string $name = null,
-        private readonly ?string $class = null
+        private readonly ReadModelFieldMatcher $matcher
     ) {
     }
 
@@ -134,7 +131,7 @@ final class DeferredDynamoDbRepository implements FlushableRepository
             try {
                 $this->storage->remove($id);
             } catch (\Throwable $exception) {
-                throw new DeferredFlushFailed(DeferredOperation::REMOVE, $id, $this->table, $this->name, $this->class, $context, $exception);
+                throw new DeferredFlushFailed(DeferredOperation::REMOVE, $id, $this->storage->table(), $this->storage->name(), $this->storage->readModelClass(), $context, $exception);
             }
 
             unset($this->removed[$index]);
@@ -144,7 +141,7 @@ final class DeferredDynamoDbRepository implements FlushableRepository
             try {
                 $this->storage->save($save);
             } catch (\Throwable $exception) {
-                throw new DeferredFlushFailed(DeferredOperation::SAVE, $id, $this->table, $this->name, $this->class, $context, $exception);
+                throw new DeferredFlushFailed(DeferredOperation::SAVE, $id, $this->storage->table(), $this->storage->name(), $this->storage->readModelClass(), $context, $exception);
             }
 
             unset($this->dirty[$id]);

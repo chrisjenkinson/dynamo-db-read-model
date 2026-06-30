@@ -25,6 +25,21 @@ final class DynamoDbReadModelStorage
     ) {
     }
 
+    public function table(): string
+    {
+        return $this->table;
+    }
+
+    public function name(): string
+    {
+        return $this->name;
+    }
+
+    public function readModelClass(): string
+    {
+        return $this->class;
+    }
+
     public function prepareSave(Identifiable $data): PreparedReadModelSave
     {
         return new PreparedReadModelSave($data->getId(), $this->serializer->serialize($data));
