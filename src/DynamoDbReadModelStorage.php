@@ -42,6 +42,10 @@ final class DynamoDbReadModelStorage
 
     public function prepareSave(Identifiable $data): PreparedReadModelSave
     {
+        if (!($data instanceof $this->class)) {
+            throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
+        }
+
         return new PreparedReadModelSave($data->getId(), $this->serializer->serialize($data));
     }
 

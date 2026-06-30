@@ -9,7 +9,7 @@ use Broadway\ReadModel\Repository;
 use Broadway\ReadModel\RepositoryFactory;
 use Broadway\Serializer\Serializer;
 
-final class DynamoDbRepositoryFactory implements RepositoryFactory
+final class DynamoDbRepositoryFactory implements RepositoryFactory, DeferredRepositoryFactory
 {
     public function __construct(
         private readonly DynamoDbClient $client,

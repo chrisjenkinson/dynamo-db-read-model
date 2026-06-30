@@ -72,6 +72,18 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $repository->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
     }
 
+    public function test_it_rejects_saving_a_read_model_for_a_different_repository_class(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())->method('putItem');
+
+        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+
+        $this->expectException(UnexpectedReadModel::class);
+
+        $repository->save(new UnexpectedSerializableReadModel('wrong-class'));
+    }
+
     public function test_it_skips_the_second_physical_write_when_the_same_state_was_already_saved(): void
     {
         $putItemOutput = new PutItemOutput($this->createResponse());

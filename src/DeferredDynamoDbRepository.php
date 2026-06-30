@@ -83,7 +83,8 @@ final class DeferredDynamoDbRepository implements FlushableRepository
 
     public function findAll(): array
     {
-        $models = [];
+        $models        = [];
+        $managedBefore = array_fill_keys(array_keys($this->managed), true);
 
         foreach ($this->storage->findAll() as $model) {
             $id = $model->getId();
@@ -98,8 +99,11 @@ final class DeferredDynamoDbRepository implements FlushableRepository
 
         foreach ($this->dirty as $id => $save) {
             if (!in_array($id, $this->removed, true)) {
-                $this->managed[$id] = $this->storage->modelFromPreparedSave($save);
-                $models[$id]        = $this->managed[$id];
+                if (!isset($managedBefore[$id])) {
+                    $this->managed[$id] = $this->storage->modelFromPreparedSave($save);
+                }
+
+                $models[$id] = $this->managed[$id];
             }
         }
 

@@ -51,8 +51,14 @@ extra DynamoDB read:
 $factory = new DynamoDbRepositoryFactory($client, $serializer, 'read-models', new ReadModelSnapshotStore());
 ```
 
-Direct `DynamoDbRepository` construction takes explicit storage and matcher
-collaborators. Prefer the factory unless you need manual wiring:
+The factory is the recommended construction path. It creates the per-repository
+storage and matcher internally.
+
+Direct `DynamoDbRepository` construction is still possible, but its constructor
+now expects explicit storage and matcher collaborators. If you manually construct
+repositories, move the DynamoDB-specific arguments into a
+`DynamoDbReadModelStorage` configured for that table, repository name, and read
+model class, then pass that storage with a `ReadModelFieldMatcher`:
 
 ```php
 $storage = new DynamoDbReadModelStorage(
@@ -96,6 +102,11 @@ $repository->save($model);
 // Write pending removals and saves to DynamoDB.
 $repository->flush();
 ```
+
+`createDeferred()` is package-specific and is not part of Broadway's
+`RepositoryFactory` interface. Code that needs deferred repository creation
+should type-hint `DeferredRepositoryFactory` or the concrete
+`DynamoDbRepositoryFactory`.
 
 A deferred repository still implements `Broadway\ReadModel\Repository`, and also
 implements `FlushableRepository`:

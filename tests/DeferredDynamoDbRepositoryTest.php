@@ -20,6 +20,7 @@ use Broadway\Serializer\SimpleInterfaceSerializer;
 use chrisjenkinson\DynamoDbReadModel\DeferredDynamoDbRepository;
 use chrisjenkinson\DynamoDbReadModel\DeferredFlushFailed;
 use chrisjenkinson\DynamoDbReadModel\DeferredOperation;
+use chrisjenkinson\DynamoDbReadModel\DeferredRepositoryFactory;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbReadModelStorage;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbRepositoryFactory;
 use chrisjenkinson\DynamoDbReadModel\Exception\UnexpectedReadModel;
@@ -53,6 +54,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         );
 
         self::assertNotInstanceOf(FlushableRepository::class, $factory->create('name', RepositoryTestReadModel::class));
+        self::assertInstanceOf(DeferredRepositoryFactory::class, $factory);
         self::assertInstanceOf(FlushableRepository::class, $factory->createDeferred('name', RepositoryTestReadModel::class));
     }
 
@@ -91,6 +93,16 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client->expects($this->never())->method('putItem');
 
         $this->createRepository($client)->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
+    }
+
+    public function test_save_rejects_a_read_model_for_a_different_repository_class(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())->method('putItem');
+
+        $this->expectException(UnexpectedReadModel::class);
+
+        $this->createRepository($client)->save(new UnexpectedSerializableReadModel('wrong-class'));
     }
 
     public function test_flush_persists_dirty_models(): void
@@ -204,6 +216,25 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         self::assertCount(1, $operations);
         self::assertInstanceOf(MutableRepositoryTestReadModel::class, $operations[0]->model);
         self::assertSame('saved', $operations[0]->model->getName());
+    }
+
+    public function test_find_all_preserves_the_identity_mapped_staged_save_snapshot(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor());
+
+        $repository = $this->createMutableRepository($client);
+        $repository->save(new MutableRepositoryTestReadModel('id', 'saved'));
+
+        $found = $repository->find('id');
+        self::assertInstanceOf(MutableRepositoryTestReadModel::class, $found);
+        $found->rename('mutated');
+
+        $all = $repository->findAll();
+
+        self::assertCount(1, $all);
+        self::assertSame($found, $all[0]);
+        self::assertSame('mutated', $all[0]->getName());
     }
 
     public function test_remove_marks_the_model_removed_without_deleting_immediately(): void
