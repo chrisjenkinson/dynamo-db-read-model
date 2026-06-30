@@ -42,10 +42,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         return $factory->create(self::REPOSITORY_NAME, RepositoryTestReadModel::class);
     }
 
-    /**
-     * @test
-     */
-    public function it_removes_only_one_read_model_when_multiple_are_saved(): void
+    public function test_it_removes_only_one_read_model_when_multiple_are_saved(): void
     {
         $model1 = $this->createReadModel('1', 'name1', 'foo1');
         $model2 = $this->createReadModel('2', 'name2', 'foo2');
@@ -58,10 +55,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         $this->assertEquals([$model2], $this->repository->findAll());
     }
 
-    /**
-     * @test
-     */
-    public function it_finds_read_models_by_public_getter(): void
+    public function test_it_finds_read_models_by_public_getter(): void
     {
         $model1 = $this->createReadModel('1', 'name1', 'foo1');
         $model2 = $this->createReadModel('2', 'name2', 'foo2');
@@ -74,10 +68,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         ]));
     }
 
-    /**
-     * @test
-     */
-    public function it_rejects_unexpected_serialized_classes_before_deserializing_them(): void
+    public function test_it_rejects_unexpected_serialized_classes_before_deserializing_them(): void
     {
         UnexpectedSerializableReadModel::$deserializeWasCalled = false;
 
@@ -110,10 +101,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         }
     }
 
-    /**
-     * @test
-     */
-    public function it_rejects_serialized_data_without_a_string_class(): void
+    public function test_it_rejects_serialized_data_without_a_string_class(): void
     {
         $this->createDynamoDbClient()->putItem([
             'TableName' => self::TABLE_NAME,
@@ -140,10 +128,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         $this->repository->find('invalid-class');
     }
 
-    /**
-     * @test
-     */
-    public function it_rejects_deserialized_models_that_do_not_implement_identifiable(): void
+    public function test_it_rejects_deserialized_models_that_do_not_implement_identifiable(): void
     {
         $client = $this->createDynamoDbClient();
         $client->putItem([
@@ -186,10 +171,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         $repository->find('non-identifiable');
     }
 
-    /**
-     * @test
-     */
-    public function it_rejects_rows_whose_physical_id_does_not_match_the_payload_id_when_finding_one_model(): void
+    public function test_it_rejects_rows_whose_physical_id_does_not_match_the_payload_id_when_finding_one_model(): void
     {
         $this->putSerializedReadModel('physical-id', new RepositoryTestReadModel('payload-id', 'name', 'foo', []));
 
@@ -198,10 +180,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         $this->repository->find('physical-id');
     }
 
-    /**
-     * @test
-     */
-    public function it_rejects_rows_whose_physical_id_does_not_match_the_payload_id_when_querying_models(): void
+    public function test_it_rejects_rows_whose_physical_id_does_not_match_the_payload_id_when_querying_models(): void
     {
         $this->putSerializedReadModel('physical-id', new RepositoryTestReadModel('payload-id', 'name', 'foo', []));
 
