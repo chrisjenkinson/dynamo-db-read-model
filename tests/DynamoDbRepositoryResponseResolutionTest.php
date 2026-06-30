@@ -11,10 +11,12 @@ use AsyncAws\DynamoDb\Result\DeleteItemOutput;
 use AsyncAws\DynamoDb\Result\PutItemOutput;
 use Broadway\ReadModel\Testing\RepositoryTestReadModel;
 use Broadway\Serializer\SimpleInterfaceSerializer;
+use chrisjenkinson\DynamoDbReadModel\DynamoDbReadModelStorage;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbRepository;
 use chrisjenkinson\DynamoDbReadModel\InputBuilder;
 use chrisjenkinson\DynamoDbReadModel\JsonDecoder;
 use chrisjenkinson\DynamoDbReadModel\JsonEncoder;
+use chrisjenkinson\DynamoDbReadModel\ReadModelFieldMatcher;
 use chrisjenkinson\DynamoDbReadModel\ReadModelSnapshotStore;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -53,15 +55,18 @@ final class DynamoDbRepositoryResponseResolutionTest extends TestCase
     private function createRepository(DynamoDbClient $client): DynamoDbRepository
     {
         return new DynamoDbRepository(
-            $client,
-            new InputBuilder(),
-            new SimpleInterfaceSerializer(),
-            new JsonEncoder(),
-            new JsonDecoder(),
-            'table',
-            'name',
-            RepositoryTestReadModel::class,
-            new ReadModelSnapshotStore()
+            new DynamoDbReadModelStorage(
+                $client,
+                new InputBuilder(),
+                new SimpleInterfaceSerializer(),
+                new JsonEncoder(),
+                new JsonDecoder(),
+                'table',
+                'name',
+                RepositoryTestReadModel::class,
+                new ReadModelSnapshotStore()
+            ),
+            new ReadModelFieldMatcher()
         );
     }
 

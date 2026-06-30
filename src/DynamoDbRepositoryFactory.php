@@ -9,7 +9,7 @@ use Broadway\ReadModel\Repository;
 use Broadway\ReadModel\RepositoryFactory;
 use Broadway\Serializer\Serializer;
 
-final class DynamoDbRepositoryFactory implements RepositoryFactory
+final class DynamoDbRepositoryFactory implements RepositoryFactory, DeferredRepositoryFactory
 {
     public function __construct(
         private readonly DynamoDbClient $client,
@@ -21,11 +21,31 @@ final class DynamoDbRepositoryFactory implements RepositoryFactory
 
     public function create(string $name, string $class): Repository
     {
-        return new DynamoDbRepository($this->client, new InputBuilder(), $this->serializer, new JsonEncoder(), new JsonDecoder(), $this->table, $name, $class, $this->snapshots);
+        return new DynamoDbRepository($this->createStorage($name, $class), new ReadModelFieldMatcher());
+    }
+
+    public function createDeferred(string $name, string $class): FlushableRepository
+    {
+        return new DeferredDynamoDbRepository($this->createStorage($name, $class), new ReadModelFieldMatcher());
     }
 
     public function clearSnapshots(): void
     {
         $this->snapshots->clear();
+    }
+
+    private function createStorage(string $name, string $class): DynamoDbReadModelStorage
+    {
+        return new DynamoDbReadModelStorage(
+            $this->client,
+            new InputBuilder(),
+            $this->serializer,
+            new JsonEncoder(),
+            new JsonDecoder(),
+            $this->table,
+            $name,
+            $class,
+            $this->snapshots
+        );
     }
 }
