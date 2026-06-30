@@ -25,6 +25,11 @@ The library queries by `Name` to load all read models for a repository, and uses
 `Name` + `Id` for single-item reads, writes, and deletes. It does not require
 secondary indexes.
 
+The DynamoDB `Id` value is required to match the serialized read model's
+`Identifiable::getId()`. Rows where the physical key and payload id differ are
+treated as invalid stored data and rejected on read; repair those rows with
+explicit operational tooling rather than relying on repository normalization.
+
 `find($id)` uses the full primary key (`Name` + `Id`) and is the bounded lookup
 to prefer for production read paths. `findAll()` queries the full repository
 partition for the configured `Name` and returns every read model in memory.
@@ -46,10 +51,11 @@ extra DynamoDB read:
 $factory = new DynamoDbRepositoryFactory($client, $serializer, 'read-models', new ReadModelSnapshotStore());
 ```
 
-Direct `DynamoDbRepository` construction also needs the same dependency:
+Direct `DynamoDbRepository` construction takes explicit storage and matcher
+collaborators. Prefer the factory unless you need manual wiring:
 
 ```php
-$repository = new DynamoDbRepository(
+$storage = new DynamoDbReadModelStorage(
     $client,
     $inputBuilder,
     $serializer,
@@ -60,10 +66,104 @@ $repository = new DynamoDbRepository(
     MyReadModel::class,
     new ReadModelSnapshotStore()
 );
+
+$repository = new DynamoDbRepository(
+    $storage,
+    new ReadModelFieldMatcher()
+);
 ```
 
 Call `$factory->clearSnapshots()` before reusing the same factory after deleting
 or recreating the backing read-model table.
+
+## Deferred Persistence
+
+Repositories created with `DynamoDbRepositoryFactory::create()` keep the original
+immediate behaviour: `save()` writes with `PutItem`, `remove()` writes with
+`DeleteItem`, and `find()` reads with `GetItem`.
+
+For replay or other batching-sensitive workflows, opt in explicitly to deferred
+persistence:
+
+```php
+$repository = $factory->createDeferred('repository-name', MyReadModel::class);
+
+$model = $repository->find($id) ?? new MyReadModel($id);
+
+// Projector handlers can keep using Broadway\Repository methods.
+$repository->save($model);
+
+// Write pending removals and saves to DynamoDB.
+$repository->flush();
+```
+
+A deferred repository still implements `Broadway\ReadModel\Repository`, and also
+implements `FlushableRepository`:
+
+```php
+interface FlushableRepository extends Broadway\ReadModel\Repository
+{
+    public function flush(): void;
+
+    public function flushWithContext(array $context): void;
+
+    public function clear(): void;
+
+    public function pendingOperations(): array;
+}
+```
+
+In deferred mode, `find($id)` checks an in-memory identity map before DynamoDB.
+`save()` captures the read model's serialized state at the time `save()` is
+called and stages that state in memory. Repeated saves for the same read-model id
+replace the staged state and collapse to one `PutItem` on `flush()`. Mutating a
+read model after `save()` does not change the staged write unless `save()` is
+called again. `remove()` marks the id removed in memory, so `find($id)` returns
+`null` until the item is saved again or `clear()` discards the deferred state.
+Saving a removed id cancels the pending delete.
+
+`pendingOperations()` returns the currently staged removes and save-time
+snapshots for inspection. `flush()` writes pending deletes and saves one item at
+a time through the same DynamoDB storage path as the immediate repository. If a
+write fails, the failing and remaining pending state is retained for retry or
+inspection. Successfully flushed entries are no longer pending. `clear()` only
+discards local managed, dirty, and removed state; it does not write anything.
+
+Failures are reported with `DeferredFlushFailed`, which includes the operation,
+read-model id, table, repository name, read-model class, and previous exception.
+The repository does not know application-level details such as tenant id,
+projector name, or source event id. Pass those at the flush boundary when they
+are useful:
+
+```php
+$repository->flushWithContext([
+    'tenantId' => $tenantId,
+    'projector' => SomeProjector::class,
+    'sourceEventId' => $eventId,
+]);
+```
+
+`findAll()` and `findBy()` are merge-aware: they query DynamoDB and overlay
+pending local saves/removes before returning results. They still perform a
+DynamoDB query each time, and DynamoDB reads use the repository's normal
+consistency settings. Deferred mode makes this repository's staged changes
+visible; it does not make broad projection queries transactional or globally
+fresh.
+
+`findBy()` remains available for Broadway compatibility and small read-side
+collections. Do not use it as a write-side invariant or duplicate guard during
+command handling, seeding, or projection rebuilds. Model those cases as
+deterministic lookup read models and query them with `find($id)`.
+
+The identity map is scoped to the deferred repository instance. It can return a
+cached model even if another process changes DynamoDB while the deferred
+repository is still open. Keep deferred repositories short-lived around a replay,
+seed, or console unit of work, and call `clear()` before reusing one across
+independent work. For long replays or seeds, use explicit `flush(); clear();`
+checkpoints when managed objects are no longer needed.
+
+This is a batching and performance boundary, not a DynamoDB transaction. A failed
+flush can leave earlier operations persisted and later operations still pending.
 
 Example AWS CLI setup:
 

@@ -11,6 +11,7 @@ use Broadway\ReadModel\Repository;
 use Broadway\ReadModel\Testing\RepositoryTestCase;
 use Broadway\ReadModel\Testing\RepositoryTestReadModel;
 use Broadway\Serializer\SimpleInterfaceSerializer;
+use chrisjenkinson\DynamoDbReadModel\DynamoDbReadModelStorage;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbRepository;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbRepositoryFactory;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbTableManager;
@@ -18,6 +19,7 @@ use chrisjenkinson\DynamoDbReadModel\Exception\UnexpectedReadModel;
 use chrisjenkinson\DynamoDbReadModel\InputBuilder;
 use chrisjenkinson\DynamoDbReadModel\JsonDecoder;
 use chrisjenkinson\DynamoDbReadModel\JsonEncoder;
+use chrisjenkinson\DynamoDbReadModel\ReadModelFieldMatcher;
 use chrisjenkinson\DynamoDbReadModel\ReadModelSnapshotStore;
 
 final class DynamoDbRepositoryTest extends RepositoryTestCase
@@ -165,20 +167,67 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         ])->resolve();
 
         $repository = new DynamoDbRepository(
-            $client,
-            new InputBuilder(),
-            new SimpleInterfaceSerializer(),
-            new JsonEncoder(),
-            new JsonDecoder(),
-            self::TABLE_NAME,
-            'non-identifiable',
-            NonIdentifiableSerializableReadModel::class,
-            new ReadModelSnapshotStore()
+            new DynamoDbReadModelStorage(
+                $client,
+                new InputBuilder(),
+                new SimpleInterfaceSerializer(),
+                new JsonEncoder(),
+                new JsonDecoder(),
+                self::TABLE_NAME,
+                'non-identifiable',
+                NonIdentifiableSerializableReadModel::class,
+                new ReadModelSnapshotStore()
+            ),
+            new ReadModelFieldMatcher()
         );
 
         $this->expectException(UnexpectedReadModel::class);
 
         $repository->find('non-identifiable');
+    }
+
+    /**
+     * @test
+     */
+    public function it_rejects_rows_whose_physical_id_does_not_match_the_payload_id_when_finding_one_model(): void
+    {
+        $this->putSerializedReadModel('physical-id', new RepositoryTestReadModel('payload-id', 'name', 'foo', []));
+
+        $this->expectException(UnexpectedReadModel::class);
+
+        $this->repository->find('physical-id');
+    }
+
+    /**
+     * @test
+     */
+    public function it_rejects_rows_whose_physical_id_does_not_match_the_payload_id_when_querying_models(): void
+    {
+        $this->putSerializedReadModel('physical-id', new RepositoryTestReadModel('payload-id', 'name', 'foo', []));
+
+        $this->expectException(UnexpectedReadModel::class);
+
+        $this->repository->findBy([
+            'foo' => 'foo',
+        ]);
+    }
+
+    private function putSerializedReadModel(string $physicalId, RepositoryTestReadModel $model): void
+    {
+        $this->createDynamoDbClient()->putItem([
+            'TableName' => self::TABLE_NAME,
+            'Item'      => [
+                'Name' => new AttributeValue([
+                    'S' => self::REPOSITORY_NAME,
+                ]),
+                'Id' => new AttributeValue([
+                    'S' => $physicalId,
+                ]),
+                'Data' => new AttributeValue([
+                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                ]),
+            ],
+        ])->resolve();
     }
 
     private function createDynamoDbClient(): DynamoDbClient

@@ -15,6 +15,7 @@ use AsyncAws\DynamoDb\ValueObject\AttributeValue;
 use Broadway\ReadModel\Testing\RepositoryTestReadModel;
 use Broadway\Serializer\SimpleInterfaceSerializer;
 use chrisjenkinson\DynamoDbReadModel\DynamoDbRepositoryFactory;
+use chrisjenkinson\DynamoDbReadModel\Exception\UnexpectedReadModel;
 use chrisjenkinson\DynamoDbReadModel\JsonEncoder;
 use chrisjenkinson\DynamoDbReadModel\ReadModelSnapshot;
 use chrisjenkinson\DynamoDbReadModel\ReadModelSnapshotStore;
@@ -129,21 +130,19 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $repository->save($model);
     }
 
-    public function test_it_writes_when_find_observes_a_row_whose_physical_id_does_not_match_the_payload_id(): void
+    public function test_it_rejects_find_rows_whose_physical_id_does_not_match_the_payload_id(): void
     {
-        $putItemOutput = new PutItemOutput($this->createResponse());
-
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('payload-id', 'name', 'foo', [])));
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->never())->method('putItem');
 
         $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
-        $model      = $repository->find('physical-id');
-        self::assertInstanceOf(RepositoryTestReadModel::class, $model);
 
-        $repository->save($model);
+        $this->expectException(UnexpectedReadModel::class);
+
+        $repository->find('physical-id');
     }
 
     public function test_it_shares_snapshots_across_repositories_created_by_the_same_factory(): void
@@ -268,23 +267,36 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $repository->save(new RepositoryTestReadModel('id', 'name', 'not-matching', []));
     }
 
-    public function test_it_does_not_snapshot_models_loaded_by_query_when_the_physical_id_differs_from_the_payload_id(): void
+    public function test_it_rejects_query_rows_whose_physical_id_does_not_match_the_payload_id(): void
     {
-        $putItemOutput = new PutItemOutput($this->createResponse());
-
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->once())
             ->method('query')
             ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('payload-id', 'name', 'foo', []), 'physical-id'));
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->never())->method('putItem');
 
         $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
 
-        $models = $repository->findAll();
-        self::assertCount(1, $models);
-        self::assertContainsOnlyInstancesOf(RepositoryTestReadModel::class, $models);
+        $this->expectException(UnexpectedReadModel::class);
 
-        $repository->save($models[0]);
+        $repository->findAll();
+    }
+
+    public function test_it_rejects_find_by_rows_whose_physical_id_does_not_match_the_payload_id(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('payload-id', 'name', 'foo', []), 'physical-id'));
+        $client->expects($this->never())->method('putItem');
+
+        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+
+        $this->expectException(UnexpectedReadModel::class);
+
+        $repository->findBy([
+            'foo' => 'foo',
+        ]);
     }
 
     private function createFactory(DynamoDbClient $client): DynamoDbRepositoryFactory
