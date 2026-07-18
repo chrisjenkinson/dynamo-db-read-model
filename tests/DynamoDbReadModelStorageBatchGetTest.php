@@ -83,40 +83,41 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
      *
      * @param array<string, AttributeValue> $item
      */
-    public function testRejectsMissingOrNonStringIdAndData(array $item): void
+    public function testRejectsMissingOrNonStringIdAndData(array $item, string $message): void
     {
         $this->expectException(UnexpectedEncodedData::class);
+        $this->expectExceptionMessage($message);
 
         $this->storage($this->clientReturning([$item]))->findMany(['id']);
     }
 
     /**
-     * @return iterable<string, array{array<string, AttributeValue>}>
+     * @return iterable<string, array{array<string, AttributeValue>, string}>
      */
     public function invalidBatchItems(): iterable
     {
         yield 'missing Id' => [[
             'Data' => $this->stringAttribute('{}'),
-        ]];
+        ], 'Expected "Id" to be "string", instead got "null".'];
         yield 'non-string Id' => [[
             'Id' => new AttributeValue([
                 'N' => '1',
             ]),
             'Data' => $this->stringAttribute('{}'),
-        ]];
+        ], 'Expected "Id" to be "string", instead got "null".'];
         yield 'empty Id' => [[
             'Id'   => $this->stringAttribute(''),
             'Data' => $this->stringAttribute('{}'),
-        ]];
+        ], 'Expected "Id" to be "a unique non-empty id outstanding in the current attempt", instead got "string".'];
         yield 'missing Data' => [[
             'Id' => $this->stringAttribute('id'),
-        ]];
+        ], 'Expected "Data" to be "string", instead got "null".'];
         yield 'non-string Data' => [[
             'Id'   => $this->stringAttribute('id'),
             'Data' => new AttributeValue([
                 'N' => '1',
             ]),
-        ]];
+        ], 'Expected "Data" to be "string", instead got "null".'];
     }
 
     public function testJsonDecodeFailuresPropagate(): void
@@ -175,6 +176,11 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
     public function testRejectsPhysicalAndPayloadIdMismatch(): void
     {
         $this->expectException(UnexpectedReadModel::class);
+        $this->expectExceptionMessage(sprintf(
+            'Mismatch between data (%s with id payload) and expected class (%s with id physical)',
+            RepositoryTestReadModel::class,
+            RepositoryTestReadModel::class
+        ));
 
         $this->storage($this->clientReturning([$this->item('payload', 'physical')]))->findMany(['physical']);
     }
@@ -349,6 +355,10 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
             })->findMany($ids);
             self::fail('Expected retries to be exhausted.');
         } catch (BatchGetRetriesExhausted $exception) {
+            self::assertSame(
+                'Batch get retries exhausted for repository "repository" in table "table" after 4 attempts; unresolved ids: id-002.',
+                $exception->getMessage()
+            );
             self::assertSame('table', $exception->table);
             self::assertSame('repository', $exception->repositoryName);
             self::assertSame(RepositoryTestReadModel::class, $exception->readModelClass);
@@ -456,6 +466,38 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         yield 'duplicate Id' => [[
             'table' => $this->keys(['one', 'one']),
         ]];
+    }
+
+    public function testMissingUnprocessedNameReportsTheMalformedAttribute(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects(self::once())->method('batchGetItem')->willReturn($this->output([], [
+            'table' => $this->rawKeys([[
+                'Id' => $this->stringAttribute('one'),
+            ]]),
+        ]));
+
+        $this->expectException(UnexpectedEncodedData::class);
+        $this->expectExceptionMessage('Expected "UnprocessedKeys.Name" to be "string", instead got "null".');
+
+        $this->storage($client)
+            ->findMany(['one']);
+    }
+
+    public function testMissingUnprocessedIdReportsTheMalformedAttribute(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects(self::once())->method('batchGetItem')->willReturn($this->output([], [
+            'table' => $this->rawKeys([[
+                'Name' => $this->stringAttribute('repository'),
+            ]]),
+        ]));
+
+        $this->expectException(UnexpectedEncodedData::class);
+        $this->expectExceptionMessage('Expected "UnprocessedKeys.Id" to be "string", instead got "null".');
+
+        $this->storage($client)
+            ->findMany(['one']);
     }
 
     public function testDelayExceptionsPropagateWithoutAnotherRequest(): void
