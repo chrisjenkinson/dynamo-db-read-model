@@ -254,13 +254,13 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
     private function createDynamoDbClient(): DynamoDbClient
     {
         return new DynamoDbClient(Configuration::create([
-            'endpoint'        => $this->required_environment_variable('DYNAMODB_ENDPOINT'),
-            'accessKeyId'     => $this->required_environment_variable('AWS_ACCESS_KEY_ID'),
-            'accessKeySecret' => $this->required_environment_variable('AWS_SECRET_ACCESS_KEY'),
+            'endpoint'        => $this->requiredEnvironmentVariable('DYNAMODB_ENDPOINT'),
+            'accessKeyId'     => $this->requiredEnvironmentVariable('AWS_ACCESS_KEY_ID'),
+            'accessKeySecret' => $this->requiredEnvironmentVariable('AWS_SECRET_ACCESS_KEY'),
         ]));
     }
 
-    private function required_environment_variable(string $name): string
+    private function requiredEnvironmentVariable(string $name): string
     {
         $value = getenv($name);
 
