@@ -254,9 +254,20 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
     private function createDynamoDbClient(): DynamoDbClient
     {
         return new DynamoDbClient(Configuration::create([
-            'endpoint'        => getenv('DYNAMODB_ENDPOINT') ?: 'http://dynamodb-local:8000',
-            'accessKeyId'     => getenv('AWS_ACCESS_KEY_ID') ?: 'none',
-            'accessKeySecret' => getenv('AWS_SECRET_ACCESS_KEY') ?: 'none',
+            'endpoint'        => $this->required_environment_variable('DYNAMODB_ENDPOINT'),
+            'accessKeyId'     => $this->required_environment_variable('AWS_ACCESS_KEY_ID'),
+            'accessKeySecret' => $this->required_environment_variable('AWS_SECRET_ACCESS_KEY'),
         ]));
+    }
+
+    private function required_environment_variable(string $name): string
+    {
+        $value = getenv($name);
+
+        if (false === $value || '' === $value) {
+            throw new \RuntimeException(sprintf('Required environment variable "%s" is not set.', $name));
+        }
+
+        return $value;
     }
 }

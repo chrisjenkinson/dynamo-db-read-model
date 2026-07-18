@@ -26,7 +26,7 @@ use PHPUnit\Framework\TestCase;
 
 final class DynamoDbReadModelStorageBatchGetTest extends TestCase
 {
-    public function testEmptyIdsReturnWithoutCallingDynamoDb(): void
+    public function test_empty_ids_return_without_calling_dynamo_db(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::never())->method('batchGetItem');
@@ -34,7 +34,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         self::assertSame([], $this->storage($client)->findMany([]));
     }
 
-    public function testUnorderedResponsesAreReturnedInUniqueRequestedOrderAndMissingIdsAreOmitted(): void
+    public function test_unordered_responses_are_returned_in_unique_requested_order_and_missing_ids_are_omitted(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('batchGetItem')->with(self::callback(function (BatchGetItemInput $input): bool {
@@ -53,7 +53,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         self::assertSame(['one', 'three'], array_map(static fn (Identifiable $model): string => $model->getId(), $models));
     }
 
-    public function testOneHundredIdsUseOneRequest(): void
+    public function test_one_hundred_ids_use_one_request(): void
     {
         $ids    = $this->ids(100);
         $client = $this->createMock(DynamoDbClient::class);
@@ -64,7 +64,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         self::assertSame([], $this->storage($client)->findMany($ids));
     }
 
-    public function testOneHundredAndOneIdsUseSequentialRequestsOfOneHundredAndOne(): void
+    public function test_one_hundred_and_one_ids_use_sequential_requests_of_one_hundred_and_one(): void
     {
         $sizes  = [];
         $client = $this->createMock(DynamoDbClient::class);
@@ -83,7 +83,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
      *
      * @param array<string, AttributeValue> $item
      */
-    public function testRejectsMissingOrNonStringIdAndData(array $item, string $message): void
+    public function test_rejects_invalid_id_or_data_attributes(array $item, string $message): void
     {
         $this->expectException(UnexpectedEncodedData::class);
         $this->expectExceptionMessage($message);
@@ -120,14 +120,14 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         ], 'Expected "Data" to be "string", instead got "null".'];
     }
 
-    public function testJsonDecodeFailuresPropagate(): void
+    public function test_json_decode_failures_propagate(): void
     {
         $this->expectException(JsonException::class);
 
         $this->storage($this->clientReturning([$this->rawItem('id', '{')]))->findMany(['id']);
     }
 
-    public function testRejectsUnexpectedSerializedClassBeforeDeserializing(): void
+    public function test_rejects_unexpected_serialized_class_before_deserializing(): void
     {
         UnexpectedSerializableReadModel::$deserializeWasCalled = false;
         $item                                                  = $this->rawItem('id', json_encode([
@@ -145,7 +145,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testRejectsNonIdentifiableDeserializedModel(): void
+    public function test_rejects_non_identifiable_deserialized_model(): void
     {
         $item = $this->rawItem('id', json_encode([
             'class'   => NonIdentifiableSerializableReadModel::class,
@@ -159,7 +159,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         $this->storage($this->clientReturning([$item]), NonIdentifiableSerializableReadModel::class)->findMany(['id']);
     }
 
-    public function testRejectsDeserializedModelOfWrongClass(): void
+    public function test_rejects_deserialized_model_of_wrong_class(): void
     {
         $item = $this->rawItem('id', json_encode([
             'class'   => UnexpectedSerializableReadModel::class,
@@ -173,7 +173,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         $this->storage($this->clientReturning([$item]))->findMany(['id']);
     }
 
-    public function testRejectsPhysicalAndPayloadIdMismatch(): void
+    public function test_rejects_physical_and_payload_id_mismatch(): void
     {
         $this->expectException(UnexpectedReadModel::class);
         $this->expectExceptionMessage(sprintf(
@@ -190,7 +190,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
      *
      * @param array<string, array<int, array<string, AttributeValue>>> $responses
      */
-    public function testRejectsWrongOrExtraResponseTablesBeforeDeserializing(array $responses): void
+    public function test_rejects_wrong_or_extra_response_tables_before_deserializing(array $responses): void
     {
         $snapshots = new ReadModelSnapshotStore();
         $client    = $this->createMock(DynamoDbClient::class);
@@ -220,7 +220,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         ]];
     }
 
-    public function testRejectsUnknownResponseIdBeforeDeserializing(): void
+    public function test_rejects_unknown_response_id_before_deserializing(): void
     {
         $snapshots = new ReadModelSnapshotStore();
         $this->expectException(UnexpectedEncodedData::class);
@@ -232,7 +232,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testRejectsDuplicateConflictingResponseIdsBeforeDeserializing(): void
+    public function test_rejects_duplicate_conflicting_response_ids_before_deserializing(): void
     {
         $snapshots = new ReadModelSnapshotStore();
         $client    = $this->clientReturning([
@@ -249,7 +249,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testRejectsDuplicateResponseIdsBeforeDeserializing(): void
+    public function test_rejects_duplicate_response_ids_before_deserializing(): void
     {
         $snapshots = new ReadModelSnapshotStore();
         $client    = $this->clientReturning([
@@ -266,7 +266,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testRejectsResponseAndUnprocessedOverlapBeforeDeserializing(): void
+    public function test_rejects_response_and_unprocessed_overlap_before_deserializing(): void
     {
         $snapshots = new ReadModelSnapshotStore();
         $client    = $this->createMock(DynamoDbClient::class);
@@ -283,7 +283,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testAccumulatesProcessedResponsesAndRetriesOnlyReturnedKeys(): void
+    public function test_accumulates_processed_responses_and_retries_only_returned_keys(): void
     {
         $unprocessed = $this->keys(['two']);
         $outputs     = [
@@ -311,7 +311,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         self::assertSame($unprocessed, $requests[1]->getRequestItems()['table']);
     }
 
-    public function testRetryDelayCapsResetForEachChunkAndThereIsNoDelayAfterCompletion(): void
+    public function test_retry_delay_caps_reset_for_each_chunk_and_there_is_no_delay_after_completion(): void
     {
         $outputs = [
             $this->output([], [
@@ -338,7 +338,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         self::assertSame([25000, 25000], $caps);
     }
 
-    public function testThrowsAfterExactlyFourAttemptsAndDoesNotRequestALaterChunk(): void
+    public function test_throws_after_exactly_four_attempts_and_does_not_request_a_later_chunk(): void
     {
         $ids         = $this->ids(101);
         $unprocessed = $this->keys(['id-002']);
@@ -369,7 +369,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testExhaustedIdsUseOriginalChunkOrderRatherThanReturnedKeyOrder(): void
+    public function test_exhausted_ids_use_original_chunk_order_rather_than_returned_key_order(): void
     {
         $output = $this->output([], [
             'table' => $this->keys(['three', 'one']),
@@ -391,7 +391,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
      *
      * @param array<string, KeysAndAttributes> $unprocessed
      */
-    public function testRejectsMalformedUnprocessedKeysBeforeDelayOrAnotherRequest(array $unprocessed): void
+    public function test_rejects_malformed_unprocessed_keys_before_delay_or_another_request(array $unprocessed): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('batchGetItem')->willReturn($this->output([], $unprocessed));
@@ -468,7 +468,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         ]];
     }
 
-    public function testMissingUnprocessedNameReportsTheMalformedAttribute(): void
+    public function test_missing_unprocessed_name_reports_the_malformed_attribute(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('batchGetItem')->willReturn($this->output([], [
@@ -484,7 +484,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
             ->findMany(['one']);
     }
 
-    public function testMissingUnprocessedIdReportsTheMalformedAttribute(): void
+    public function test_missing_unprocessed_id_reports_the_malformed_attribute(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('batchGetItem')->willReturn($this->output([], [
@@ -500,7 +500,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
             ->findMany(['one']);
     }
 
-    public function testDelayExceptionsPropagateWithoutAnotherRequest(): void
+    public function test_delay_exceptions_propagate_without_another_request(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('batchGetItem')->willReturn($this->output([], [
@@ -518,7 +518,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         }
     }
 
-    public function testSnapshotsFromCompletedChunksRemainAfterALaterChunkExhaustsRetries(): void
+    public function test_snapshots_from_completed_chunks_remain_after_a_later_chunk_exhausts_retries(): void
     {
         $firstChunk  = $this->ids(100);
         $secondChunk = ['id-101'];
@@ -557,7 +557,7 @@ final class DynamoDbReadModelStorageBatchGetTest extends TestCase
         $storage->save($storage->prepareSave($model));
     }
 
-    public function testRetriesValidateAgainstOnlyThePreviousAttemptsOutstandingIds(): void
+    public function test_retries_validate_against_only_the_previous_attempts_outstanding_ids(): void
     {
         $outputs = [
             $this->output([], [

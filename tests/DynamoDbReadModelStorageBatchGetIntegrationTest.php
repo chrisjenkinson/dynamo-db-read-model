@@ -30,9 +30,9 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->client = new DynamoDbClient(Configuration::create([
-            'endpoint'        => getenv('DYNAMODB_ENDPOINT') ?: 'http://127.0.0.1:8000',
-            'accessKeyId'     => 'none',
-            'accessKeySecret' => 'none',
+            'endpoint'        => $this->required_environment_variable('DYNAMODB_ENDPOINT'),
+            'accessKeyId'     => $this->required_environment_variable('AWS_ACCESS_KEY_ID'),
+            'accessKeySecret' => $this->required_environment_variable('AWS_SECRET_ACCESS_KEY'),
         ]));
         $manager = new DynamoDbTableManager($this->client, new InputBuilder(), self::TABLE);
         $manager->deleteTable();
@@ -40,14 +40,14 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
         $this->storage = $this->newStorage();
     }
 
-    public function testReturnsRequestedOrderAndOmitsMissingIds(): void
+    public function test_returns_requested_order_and_omits_missing_ids(): void
     {
         $this->saveModels(['one', 'two', 'three']);
 
         self::assertSame(['three', 'one'], $this->modelIds($this->storage->findMany(['three', 'missing', 'one'])));
     }
 
-    public function testReadsAcrossTheOneHundredItemBoundary(): void
+    public function test_reads_across_the_one_hundred_item_boundary(): void
     {
         $ids = array_map(static fn (int $number): string => 'id-' . $number, range(1, 101));
         $this->saveModels($ids);
@@ -55,7 +55,7 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
         self::assertSame($ids, $this->modelIds($this->storage->findMany($ids)));
     }
 
-    public function testRejectsUnexpectedSerializedClass(): void
+    public function test_rejects_unexpected_serialized_class(): void
     {
         UnexpectedSerializableReadModel::$deserializeWasCalled = false;
         $this->putRaw('id', UnexpectedSerializableReadModel::class, 'id');
@@ -68,7 +68,7 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
         }
     }
 
-    public function testRejectsPhysicalAndPayloadIdentifierMismatch(): void
+    public function test_rejects_physical_and_payload_identifier_mismatch(): void
     {
         $this->putRaw('physical', RepositoryTestReadModel::class, 'payload');
         $this->expectException(UnexpectedReadModel::class);
@@ -76,7 +76,7 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
         $this->storage->findMany(['physical']);
     }
 
-    public function testLoadedSnapshotSuppressesAnUnchangedSave(): void
+    public function test_loaded_snapshot_suppresses_an_unchanged_save(): void
     {
         $model = new RepositoryTestReadModel('id', 'name', 'foo', []);
         $this->storage->save($this->storage->prepareSave($model));
@@ -148,5 +148,16 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
             RepositoryTestReadModel::class,
             new ReadModelSnapshotStore()
         );
+    }
+
+    private function required_environment_variable(string $name): string
+    {
+        $value = getenv($name);
+
+        if (false === $value || '' === $value) {
+            throw new \RuntimeException(sprintf('Required environment variable "%s" is not set.', $name));
+        }
+
+        return $value;
     }
 }

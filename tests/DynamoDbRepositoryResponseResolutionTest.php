@@ -24,10 +24,7 @@ use Symfony\Component\HttpClient\MockHttpClient;
 
 final class DynamoDbRepositoryResponseResolutionTest extends TestCase
 {
-    /**
-     * @test
-     */
-    public function it_resolves_the_put_item_response_when_saving(): void
+    public function test_it_resolves_the_put_item_response_when_saving(): void
     {
         $output = new PutItemOutput($this->createResponse());
         $client = $this->createMock(DynamoDbClient::class);
@@ -41,10 +38,7 @@ final class DynamoDbRepositoryResponseResolutionTest extends TestCase
         $this->assertTrue($output->info()['resolved']);
     }
 
-    /**
-     * @test
-     */
-    public function it_resolves_the_delete_item_response_when_removing(): void
+    public function test_it_resolves_the_delete_item_response_when_removing(): void
     {
         $output = new DeleteItemOutput($this->createResponse());
         $client = $this->createMock(DynamoDbClient::class);

@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 final class InputBuilderBatchGetItemTest extends TestCase
 {
-    public function testBuildsBatchGetItemInputForIds(): void
+    public function test_builds_batch_get_item_input_for_ids(): void
     {
         $input = (new InputBuilder())->buildBatchGetItemInput('table', 'repository', ['one', 'two']);
 
@@ -37,7 +37,7 @@ final class InputBuilderBatchGetItemTest extends TestCase
         self::assertNull($keysAndAttributes->getConsistentRead());
     }
 
-    public function testBuildsRetryInputWithSuppliedKeysAndAttributes(): void
+    public function test_builds_retry_input_with_supplied_keys_and_attributes(): void
     {
         $keysAndAttributes = new KeysAndAttributes([
             'Keys' => [

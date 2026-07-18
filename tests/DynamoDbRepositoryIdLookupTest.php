@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 
 final class DynamoDbRepositoryIdLookupTest extends TestCase
 {
-    public function testScalarLowercaseIdUsesGetItemWithoutQueryingOrBatching(): void
+    public function test_scalar_lowercase_id_uses_get_item_without_querying_or_batching(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('getItem')->willReturn($this->getOutput($this->model('one')));
@@ -33,7 +33,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
         ])));
     }
 
-    public function testMissingScalarLowercaseIdReturnsAnEmptyList(): void
+    public function test_missing_scalar_lowercase_id_returns_an_empty_list(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::once())->method('getItem')->willReturn($this->getOutput());
@@ -45,7 +45,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
         ]));
     }
 
-    public function testScalarLowercaseIdAppliesOnlyTheAdditionalPredicates(): void
+    public function test_scalar_lowercase_id_applies_only_the_additional_predicates(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::exactly(2))->method('getItem')->willReturn($this->getOutput($this->model('one', 'foo')));
@@ -63,7 +63,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
         ]));
     }
 
-    public function testIdListUsesBatchGetAndPreservesRequestedOrderWhileOmittingMissingModels(): void
+    public function test_id_list_uses_batch_get_and_preserves_requested_order_while_omitting_missing_models(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::never())->method('getItem');
@@ -78,7 +78,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
         ])));
     }
 
-    public function testIdListPredicatesAreAppliedOnlyToTheBatchLoadedModels(): void
+    public function test_id_list_predicates_are_applied_only_to_the_batch_loaded_models(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::never())->method('getItem');
@@ -94,7 +94,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
         ])));
     }
 
-    public function testImpossibleAndEmptyIdCriteriaReturnWithoutCallingDynamoDb(): void
+    public function test_impossible_and_empty_id_criteria_return_without_calling_dynamo_db(): void
     {
         $client     = $this->clientExpectingNoReads();
         $repository = $this->repository($client);
@@ -108,7 +108,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
         ]));
     }
 
-    public function testMalformedIdListFailsBeforeCallingDynamoDb(): void
+    public function test_malformed_id_list_fails_before_calling_dynamo_db(): void
     {
         $repository = $this->repository($this->clientExpectingNoReads());
         $this->expectException(InvalidIdCriterion::class);
@@ -121,7 +121,7 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
     /**
      * @dataProvider legacyIdFieldNames
      */
-    public function testNonExactLowercaseIdFieldsRetainQueryAndMatcherSemantics(string $field): void
+    public function test_non_exact_lowercase_id_fields_retain_query_and_matcher_semantics(string $field): void
     {
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects(self::never())->method('getItem');
