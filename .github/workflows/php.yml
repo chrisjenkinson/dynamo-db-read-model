@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       dynamodb-local:
-        image: amazon/dynamodb-local:1.22.0
+        image: amazon/dynamodb-local:3.3.0
         ports:
           - 8000:8000/tcp
     strategy:
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       dynamodb-local:
-        image: amazon/dynamodb-local:1.22.0
+        image: amazon/dynamodb-local:3.3.0
         ports:
           - 8000:8000/tcp
     env:
