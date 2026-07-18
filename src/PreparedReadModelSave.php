@@ -7,7 +7,7 @@ namespace chrisjenkinson\DynamoDbReadModel;
 final class PreparedReadModelSave
 {
     /**
-     * @param array<string, mixed> $serializedData
+     * @param array<mixed> $serializedData
      */
     public function __construct(
         public readonly string $id,

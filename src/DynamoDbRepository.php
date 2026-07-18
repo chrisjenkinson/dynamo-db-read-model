@@ -22,7 +22,7 @@ final class DynamoDbRepository implements Repository
 
     public function find($id): ?Identifiable
     {
-        return $this->storage->find((string) $id);
+        return $this->storage->find(RepositoryId::normalize($id));
     }
 
     /**
@@ -81,6 +81,6 @@ final class DynamoDbRepository implements Repository
 
     public function remove($id): void
     {
-        $this->storage->remove((string) $id);
+        $this->storage->remove(RepositoryId::normalize($id));
     }
 }

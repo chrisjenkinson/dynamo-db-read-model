@@ -132,7 +132,7 @@ final class DynamoDbReadModelStorageBatchGetIntegrationTest extends TestCase
      */
     private function modelIds(array $models): array
     {
-        return array_map(static fn (Identifiable $model): string => $model->getId(), $models);
+        return array_values(array_map(static fn (Identifiable $model): string => $model->getId(), $models));
     }
 
     private function newStorage(): DynamoDbReadModelStorage
