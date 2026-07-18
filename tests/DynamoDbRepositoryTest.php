@@ -44,8 +44,8 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     public function test_it_removes_only_one_read_model_when_multiple_are_saved(): void
     {
-        $model1 = $this->createReadModel('1', 'name1', 'foo1');
-        $model2 = $this->createReadModel('2', 'name2', 'foo2');
+        $model1 = $this->readModel('1', 'name1', 'foo1');
+        $model2 = $this->readModel('2', 'name2', 'foo2');
 
         $this->repository->save($model1);
         $this->repository->save($model2);
@@ -57,8 +57,8 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     public function test_it_finds_read_models_by_public_getter(): void
     {
-        $model1 = $this->createReadModel('1', 'name1', 'foo1');
-        $model2 = $this->createReadModel('2', 'name2', 'foo2');
+        $model1 = $this->readModel('1', 'name1', 'foo1');
+        $model2 = $this->readModel('2', 'name2', 'foo2');
 
         $this->repository->save($model1);
         $this->repository->save($model2);
@@ -70,7 +70,7 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     public function test_it_finds_a_read_model_by_exact_lowercase_id(): void
     {
-        $model = $this->createReadModel('one', 'name', 'foo');
+        $model = $this->readModel('one', 'name', 'foo');
         $this->repository->save($model);
 
         self::assertEquals([$model], $this->repository->findBy([
@@ -80,9 +80,9 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     public function test_it_finds_an_ordered_id_list_and_omits_missing_models(): void
     {
-        $one   = $this->createReadModel('one', 'name one', 'foo');
-        $two   = $this->createReadModel('two', 'name two', 'foo');
-        $three = $this->createReadModel('three', 'name three', 'foo');
+        $one   = $this->readModel('one', 'name one', 'foo');
+        $two   = $this->readModel('two', 'name two', 'foo');
+        $three = $this->readModel('three', 'name three', 'foo');
         $this->repository->save($one);
         $this->repository->save($two);
         $this->repository->save($three);
@@ -94,9 +94,9 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     public function test_it_applies_additional_predicates_to_an_id_list(): void
     {
-        $matching = $this->createReadModel('one', 'name one', 'matching');
-        $other    = $this->createReadModel('two', 'name two', 'other');
-        $outside  = $this->createReadModel('outside', 'name outside', 'matching');
+        $matching = $this->readModel('one', 'name one', 'matching');
+        $other    = $this->readModel('two', 'name two', 'other');
+        $outside  = $this->readModel('outside', 'name outside', 'matching');
         $this->repository->save($matching);
         $this->repository->save($other);
         $this->repository->save($outside);
@@ -230,6 +230,11 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         $this->repository->findBy([
             'foo' => 'foo',
         ]);
+    }
+
+    private function readModel(string $id, string $name, string $foo): RepositoryTestReadModel
+    {
+        return new RepositoryTestReadModel($id, $name, $foo, []);
     }
 
     private function putSerializedReadModel(string $physicalId, RepositoryTestReadModel $model): void

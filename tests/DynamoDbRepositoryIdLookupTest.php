@@ -228,6 +228,6 @@ final class DynamoDbRepositoryIdLookupTest extends TestCase
      */
     private function ids(array $models): array
     {
-        return array_map(static fn (Identifiable $model): string => $model->getId(), $models);
+        return array_values(array_map(static fn (Identifiable $model): string => $model->getId(), $models));
     }
 }

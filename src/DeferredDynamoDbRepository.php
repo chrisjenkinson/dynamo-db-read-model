@@ -41,7 +41,7 @@ final class DeferredDynamoDbRepository implements FlushableRepository
 
     public function find($id): ?Identifiable
     {
-        $id = (string) $id;
+        $id = RepositoryId::normalize($id);
 
         if (in_array($id, $this->removed, true)) {
             return null;
@@ -187,7 +187,7 @@ final class DeferredDynamoDbRepository implements FlushableRepository
 
     public function remove($id): void
     {
-        $id = (string) $id;
+        $id = RepositoryId::normalize($id);
 
         unset($this->managed[$id], $this->dirty[$id]);
 

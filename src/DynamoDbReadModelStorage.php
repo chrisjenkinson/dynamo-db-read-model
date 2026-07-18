@@ -247,10 +247,10 @@ final class DynamoDbReadModelStorage
     }
 
     /**
-     * @param array<string, array<int, array<string, \AsyncAws\DynamoDb\ValueObject\AttributeValue>>> $responses
-     * @param list<string>                                                                              $outstandingIds
+     * @param array<string, array<array<string, \AsyncAws\DynamoDb\ValueObject\AttributeValue>>> $responses
+     * @param list<string>                                                                         $outstandingIds
      *
-     * @return array<int, array<string, \AsyncAws\DynamoDb\ValueObject\AttributeValue>>
+     * @return array<array<string, \AsyncAws\DynamoDb\ValueObject\AttributeValue>>
      */
     private function validateResponses(array $responses, array $outstandingIds): array
     {
@@ -337,7 +337,7 @@ final class DynamoDbReadModelStorage
     }
 
     /**
-     * @param array<string, mixed> $serializedData
+     * @param array<mixed> $serializedData
      */
     private function deserializeSerializedReadModel(array $serializedData, string $observedId, bool $rememberSnapshot): Identifiable
     {
@@ -352,7 +352,7 @@ final class DynamoDbReadModelStorage
         $data = $this->serializer->deserialize($serializedData);
 
         if (!($data instanceof $this->class && $data instanceof Identifiable)) {
-            throw new UnexpectedReadModel(actual: $data::class, expected: $this->class);
+            throw new UnexpectedReadModel(actual: get_debug_type($data), expected: $this->class);
         }
 
         $id = $data->getId();

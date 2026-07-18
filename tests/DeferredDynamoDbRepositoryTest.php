@@ -8,6 +8,7 @@ use AsyncAws\Core\Response;
 use AsyncAws\Core\Test\Http\SimpleMockedResponse;
 use AsyncAws\DynamoDb\DynamoDbClient;
 use AsyncAws\DynamoDb\Input\BatchGetItemInput;
+use AsyncAws\DynamoDb\Input\DeleteItemInput;
 use AsyncAws\DynamoDb\Input\PutItemInput;
 use AsyncAws\DynamoDb\Result\BatchGetItemOutput;
 use AsyncAws\DynamoDb\Result\DeleteItemOutput;
@@ -138,7 +139,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->once())
             ->method('putItem')
-            ->willReturnCallback(function ($input) use (&$writtenPayloads, $putItemOutput): PutItemOutput {
+            ->willReturnCallback(function (PutItemInput $input) use (&$writtenPayloads, $putItemOutput): PutItemOutput {
                 $writtenPayloads[] = $this->decodePutItemPayload($input);
 
                 return $putItemOutput;
@@ -161,7 +162,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->once())
             ->method('putItem')
-            ->willReturnCallback(function ($input) use (&$writtenPayloads, $putItemOutput): PutItemOutput {
+            ->willReturnCallback(function (PutItemInput $input) use (&$writtenPayloads, $putItemOutput): PutItemOutput {
                 $writtenPayloads[] = $this->decodePutItemPayload($input);
 
                 return $putItemOutput;
@@ -309,7 +310,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->exactly(2))
             ->method('deleteItem')
-            ->willReturnCallback(function ($input) use (&$deletedIds): DeleteItemOutput {
+            ->willReturnCallback(function (DeleteItemInput $input) use (&$deletedIds): DeleteItemOutput {
                 $deletedIds[] = $input->getKey()['Id']->getS();
 
                 return new DeleteItemOutput($this->createResponse());
@@ -950,7 +951,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->exactly(4))
             ->method('putItem')
-            ->willReturnCallback(function ($input) use (&$attemptedIds): PutItemOutput {
+            ->willReturnCallback(function (PutItemInput $input) use (&$attemptedIds): PutItemOutput {
                 $id = $input->getItem()['Id']
                     ->getS();
                 $attemptedIds[] = $id;
@@ -1021,7 +1022,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client = $this->createMock(DynamoDbClient::class);
         $client->expects($this->exactly(4))
             ->method('deleteItem')
-            ->willReturnCallback(function ($input) use (&$attemptedRemoves): DeleteItemOutput {
+            ->willReturnCallback(function (DeleteItemInput $input) use (&$attemptedRemoves): DeleteItemOutput {
                 $id = $input->getKey()['Id']
                     ->getS();
                 $attemptedRemoves[] = $id;
@@ -1195,7 +1196,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
      */
     private function modelIds(array $models): array
     {
-        return array_map(static fn (Identifiable $model): string => $model->getId(), $models);
+        return array_values(array_map(static fn (Identifiable $model): string => $model->getId(), $models));
     }
 
     private function createResponse(): Response
@@ -1206,7 +1207,7 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     }
 
     /**
-     * @return array<mixed>
+     * @return array{payload: array{name: string}}
      */
     private function decodePutItemPayload(PutItemInput $input): array
     {
@@ -1214,7 +1215,14 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
             ->getS();
         self::assertIsString($data);
 
-        return json_decode($data, true, flags: JSON_THROW_ON_ERROR);
+        $decoded = json_decode($data, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded);
+        self::assertArrayHasKey('payload', $decoded);
+        self::assertIsArray($decoded['payload']);
+        self::assertArrayHasKey('name', $decoded['payload']);
+        self::assertIsString($decoded['payload']['name']);
+
+        return $decoded;
     }
 
     private function stringableId(string $id): object

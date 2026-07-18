@@ -33,12 +33,6 @@ final class ReadModelSnapshot
 
     public static function keyFor(string $table, string $name, string $class, string $id): string
     {
-        $key = json_encode([$table, $name, $class, $id], JSON_THROW_ON_ERROR);
-
-        if (!is_string($key)) {
-            throw new \JsonException('Snapshot key encoding did not produce a string.');
-        }
-
-        return $key;
+        return json_encode([$table, $name, $class, $id], JSON_THROW_ON_ERROR);
     }
 }

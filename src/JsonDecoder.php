@@ -11,6 +11,12 @@ final class JsonDecoder
      */
     public function decode(string $json): array
     {
-        return json_decode($json, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+        $decoded = json_decode($json, flags: JSON_THROW_ON_ERROR | JSON_OBJECT_AS_ARRAY);
+
+        if (!is_array($decoded)) {
+            throw new \JsonException('Decoded JSON did not produce an array.');
+        }
+
+        return $decoded;
     }
 }
