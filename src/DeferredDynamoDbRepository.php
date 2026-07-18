@@ -75,8 +75,83 @@ final class DeferredDynamoDbRepository implements FlushableRepository
             return [];
         }
 
+        $criteria = FindByCriteria::from($fields);
+
+        if (!$criteria->hasId) {
+            return $this->matching($this->findAll(), $fields);
+        }
+
+        if ($criteria->impossible || [] === $criteria->ids) {
+            return [];
+        }
+
+        if ($criteria->multiple) {
+            $models = $this->findMany($criteria->ids);
+        } else {
+            $model  = $this->find($criteria->ids[0]);
+            $models = null === $model ? [] : [$model];
+        }
+
+        if ([] === $criteria->remainingFields) {
+            return $models;
+        }
+
+        return $this->matching($models, $criteria->remainingFields);
+    }
+
+    /**
+     * @param list<string> $ids
+     *
+     * @return Identifiable[]
+     */
+    private function findMany(array $ids): array
+    {
+        $removed    = array_fill_keys($this->removed, true);
+        $unresolved = [];
+
+        foreach ($ids as $id) {
+            if (isset($removed[$id])) {
+                continue;
+            }
+
+            if (isset($this->managed[$id])) {
+                continue;
+            }
+
+            if (isset($this->dirty[$id])) {
+                $this->managed[$id] = $this->storage->modelFromPreparedSave($this->dirty[$id]);
+
+                continue;
+            }
+
+            $unresolved[] = $id;
+        }
+
+        foreach ($this->storage->findMany($unresolved) as $model) {
+            $this->managed[$model->getId()] = $model;
+        }
+
+        $models = [];
+
+        foreach ($ids as $id) {
+            if (isset($this->managed[$id]) && !isset($removed[$id])) {
+                $models[] = $this->managed[$id];
+            }
+        }
+
+        return $models;
+    }
+
+    /**
+     * @param Identifiable[]      $models
+     * @param array<string,mixed> $fields
+     *
+     * @return Identifiable[]
+     */
+    private function matching(array $models, array $fields): array
+    {
         return array_values(array_filter(
-            $this->findAll(),
+            $models,
             fn (Identifiable $model): bool => $this->matcher->matches($model, $fields)
         ));
     }

@@ -73,6 +73,27 @@ final class DeferredDynamoDbRepositoryIntegrationTest extends TestCase
         ]));
     }
 
+    public function test_deferred_id_list_lookup_merges_staged_and_persisted_models_in_requested_order_before_filtering(): void
+    {
+        $factory = $this->createFactory();
+
+        $persistedMatching = new RepositoryTestReadModel('persisted-matching', 'persisted-matching', 'matched', []);
+        $persistedOther    = new RepositoryTestReadModel('persisted-other', 'persisted-other', 'other', []);
+        $dirty             = new RepositoryTestReadModel('dirty', 'dirty', 'matched', []);
+
+        $immediate = $factory->create(self::REPOSITORY_NAME, RepositoryTestReadModel::class);
+        $immediate->save($persistedMatching);
+        $immediate->save($persistedOther);
+
+        $deferred = $factory->createDeferred(self::REPOSITORY_NAME, RepositoryTestReadModel::class);
+        $deferred->save($dirty);
+
+        self::assertEquals([$persistedMatching, $dirty], $deferred->findBy([
+            'id'  => ['persisted-other', 'persisted-matching', 'dirty'],
+            'foo' => 'matched',
+        ]));
+    }
+
     public function test_deferred_queries_reject_rows_whose_physical_id_does_not_match_the_payload_id(): void
     {
         $factory = $this->createFactory();
@@ -96,20 +117,21 @@ final class DeferredDynamoDbRepositoryIntegrationTest extends TestCase
 
     private function putSerializedReadModel(string $physicalId, RepositoryTestReadModel $model): void
     {
-        $this->createClient()->putItem([
-            'TableName' => self::TABLE_NAME,
-            'Item'      => [
-                'Name' => new AttributeValue([
-                    'S' => self::REPOSITORY_NAME,
-                ]),
-                'Id' => new AttributeValue([
-                    'S' => $physicalId,
-                ]),
-                'Data' => new AttributeValue([
-                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
-                ]),
-            ],
-        ])->resolve();
+        $this->createClient()
+            ->putItem([
+                'TableName' => self::TABLE_NAME,
+                'Item'      => [
+                    'Name' => new AttributeValue([
+                        'S' => self::REPOSITORY_NAME,
+                    ]),
+                    'Id' => new AttributeValue([
+                        'S' => $physicalId,
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                    ]),
+                ],
+            ])->resolve();
     }
 
     private function createClient(): DynamoDbClient

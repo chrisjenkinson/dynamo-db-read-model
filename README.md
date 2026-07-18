@@ -30,13 +30,32 @@ The DynamoDB `Id` value is required to match the serialized read model's
 treated as invalid stored data and rejected on read; repair those rows with
 explicit operational tooling rather than relying on repository normalization.
 
-`find($id)` uses the full primary key (`Name` + `Id`) and is the bounded lookup
-to prefer for production read paths. `findAll()` queries the full repository
-partition for the configured `Name` and returns every read model in memory.
-`findBy()` also queries the full repository partition, deserializes each read
-model, and then filters in PHP. For production-sized collections, avoid using
-`findAll()` or `findBy()` on request paths unless that full-partition work is
-intentional.
+`find($id)` uses the full primary key (`Name` + `Id`) and is a bounded lookup.
+`findBy()` also has bounded paths, but only when the criteria contain the exact,
+lowercase `id` field:
+
+- A non-empty string `id` uses `GetItem`. Any `id` value that is neither a
+  non-empty string nor an array, including an object or resource, returns `[]`
+  without making an AWS request. Arrays follow the list validation below.
+- A PHP list of ids uses `BatchGetItem`, split into requests of at most 100
+  keys. Every entry must be a non-empty string; a non-list array or invalid
+  entry throws `InvalidIdCriterion`. An empty list returns `[]` without making
+  an AWS request.
+- Duplicate ids are removed by first occurrence. Results follow that requested
+  order, with ids that do not exist omitted. Additional criteria are applied in
+  PHP only to this bounded set of loaded models.
+- For each chunk of at most 100 keys, unprocessed batch keys are retried with
+  jitter for up to four total attempts. If keys remain unresolved,
+  `BatchGetRetriesExhausted` reports the failure.
+
+The field name is case-sensitive. `Id`, `ID`, and other non-empty, non-ID
+criteria do not select these bounded paths: they query the full repository
+partition for the configured `Name`, deserialize its models, and filter in PHP
+unless the application models a separate indexed lookup. `findBy([])` returns
+`[]` without making an AWS request. `findAll()` queries and returns the full
+partition. For production-sized collections, avoid `findAll()` and non-ID
+`findBy()` calls on request paths unless that full-partition work is intentional.
+These optimizations do not change Broadway's `Repository` interface.
 
 ## Snapshot Store
 
@@ -154,17 +173,20 @@ $repository->flushWithContext([
 ]);
 ```
 
-`findAll()` and `findBy()` are merge-aware: they query DynamoDB and overlay
-pending local saves/removes before returning results. They still perform a
-DynamoDB query each time, and DynamoDB reads use the repository's normal
-consistency settings. Deferred mode makes this repository's staged changes
-visible; it does not make broad projection queries transactional or globally
-fresh.
+Deferred `findAll()` and `findBy()` results account for pending local state.
+`findAll()` and `findBy()` with non-empty non-ID criteria query DynamoDB each
+time and overlay pending local saves/removes; `findBy([])` returns `[]` without
+an AWS request. DynamoDB reads use the repository's normal consistency settings.
+For an ID-constrained `findBy()`, pending removals are excluded, managed and
+staged models are resolved locally, and only unresolved ids are fetched from
+DynamoDB. Deferred mode makes this repository's staged changes visible; it does
+not make broad projection queries transactional or globally fresh.
 
-`findBy()` remains available for Broadway compatibility and small read-side
-collections. Do not use it as a write-side invariant or duplicate guard during
-command handling, seeding, or projection rebuilds. Model those cases as
-deterministic lookup read models and query them with `find($id)`.
+`findBy()` remains available for Broadway compatibility. Its non-ID form is
+intended for small read-side collections because it performs the full-partition
+work described above. Do not use `findBy()` as a write-side invariant or
+duplicate guard during command handling, seeding, or projection rebuilds. Model
+those cases as deterministic lookup read models and query them with `find($id)`.
 
 The identity map is scoped to the deferred repository instance. It can return a
 cached model even if another process changes DynamoDB while the deferred

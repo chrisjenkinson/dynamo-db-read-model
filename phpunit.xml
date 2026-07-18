@@ -10,6 +10,11 @@
          failOnRisky="true"
          failOnWarning="true"
          verbose="true">
+    <php>
+        <env name="DYNAMODB_ENDPOINT" value="http://127.0.0.1:8000"/>
+        <env name="AWS_ACCESS_KEY_ID" value="none"/>
+        <env name="AWS_SECRET_ACCESS_KEY" value="none"/>
+    </php>
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>

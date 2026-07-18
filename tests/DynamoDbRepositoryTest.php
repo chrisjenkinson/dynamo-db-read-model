@@ -68,29 +68,69 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
         ]));
     }
 
+    public function test_it_finds_a_read_model_by_exact_lowercase_id(): void
+    {
+        $model = $this->createReadModel('one', 'name', 'foo');
+        $this->repository->save($model);
+
+        self::assertEquals([$model], $this->repository->findBy([
+            'id' => 'one',
+        ]));
+    }
+
+    public function test_it_finds_an_ordered_id_list_and_omits_missing_models(): void
+    {
+        $one   = $this->createReadModel('one', 'name one', 'foo');
+        $two   = $this->createReadModel('two', 'name two', 'foo');
+        $three = $this->createReadModel('three', 'name three', 'foo');
+        $this->repository->save($one);
+        $this->repository->save($two);
+        $this->repository->save($three);
+
+        self::assertEquals([$three, $one], $this->repository->findBy([
+            'id' => ['three', 'missing', 'one'],
+        ]));
+    }
+
+    public function test_it_applies_additional_predicates_to_an_id_list(): void
+    {
+        $matching = $this->createReadModel('one', 'name one', 'matching');
+        $other    = $this->createReadModel('two', 'name two', 'other');
+        $outside  = $this->createReadModel('outside', 'name outside', 'matching');
+        $this->repository->save($matching);
+        $this->repository->save($other);
+        $this->repository->save($outside);
+
+        self::assertEquals([$matching], $this->repository->findBy([
+            'id'  => ['one', 'two'],
+            'foo' => 'matching',
+        ]));
+    }
+
     public function test_it_rejects_unexpected_serialized_classes_before_deserializing_them(): void
     {
         UnexpectedSerializableReadModel::$deserializeWasCalled = false;
 
-        $this->createDynamoDbClient()->putItem([
-            'TableName' => self::TABLE_NAME,
-            'Item'      => [
-                'Name' => new AttributeValue([
-                    'S' => self::REPOSITORY_NAME,
-                ]),
-                'Id' => new AttributeValue([
-                    'S' => 'unexpected',
-                ]),
-                'Data' => new AttributeValue([
-                    'S' => json_encode([
-                        'class'   => UnexpectedSerializableReadModel::class,
-                        'payload' => [
-                            'id' => 'unexpected',
-                        ],
-                    ], JSON_THROW_ON_ERROR),
-                ]),
-            ],
-        ])->resolve();
+        $this->createDynamoDbClient()
+            ->putItem([
+                'TableName' => self::TABLE_NAME,
+                'Item'      => [
+                    'Name' => new AttributeValue([
+                        'S' => self::REPOSITORY_NAME,
+                    ]),
+                    'Id' => new AttributeValue([
+                        'S' => 'unexpected',
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => json_encode([
+                            'class'   => UnexpectedSerializableReadModel::class,
+                            'payload' => [
+                                'id' => 'unexpected',
+                            ],
+                        ], JSON_THROW_ON_ERROR),
+                    ]),
+                ],
+            ])->resolve();
 
         $this->expectException(UnexpectedReadModel::class);
 
@@ -103,25 +143,26 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     public function test_it_rejects_serialized_data_without_a_string_class(): void
     {
-        $this->createDynamoDbClient()->putItem([
-            'TableName' => self::TABLE_NAME,
-            'Item'      => [
-                'Name' => new AttributeValue([
-                    'S' => self::REPOSITORY_NAME,
-                ]),
-                'Id' => new AttributeValue([
-                    'S' => 'invalid-class',
-                ]),
-                'Data' => new AttributeValue([
-                    'S' => json_encode([
-                        'class'   => true,
-                        'payload' => [
-                            'id' => 'invalid-class',
-                        ],
-                    ], JSON_THROW_ON_ERROR),
-                ]),
-            ],
-        ])->resolve();
+        $this->createDynamoDbClient()
+            ->putItem([
+                'TableName' => self::TABLE_NAME,
+                'Item'      => [
+                    'Name' => new AttributeValue([
+                        'S' => self::REPOSITORY_NAME,
+                    ]),
+                    'Id' => new AttributeValue([
+                        'S' => 'invalid-class',
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => json_encode([
+                            'class'   => true,
+                            'payload' => [
+                                'id' => 'invalid-class',
+                            ],
+                        ], JSON_THROW_ON_ERROR),
+                    ]),
+                ],
+            ])->resolve();
 
         $this->expectException(UnexpectedReadModel::class);
 
@@ -193,20 +234,21 @@ final class DynamoDbRepositoryTest extends RepositoryTestCase
 
     private function putSerializedReadModel(string $physicalId, RepositoryTestReadModel $model): void
     {
-        $this->createDynamoDbClient()->putItem([
-            'TableName' => self::TABLE_NAME,
-            'Item'      => [
-                'Name' => new AttributeValue([
-                    'S' => self::REPOSITORY_NAME,
-                ]),
-                'Id' => new AttributeValue([
-                    'S' => $physicalId,
-                ]),
-                'Data' => new AttributeValue([
-                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
-                ]),
-            ],
-        ])->resolve();
+        $this->createDynamoDbClient()
+            ->putItem([
+                'TableName' => self::TABLE_NAME,
+                'Item'      => [
+                    'Name' => new AttributeValue([
+                        'S' => self::REPOSITORY_NAME,
+                    ]),
+                    'Id' => new AttributeValue([
+                        'S' => $physicalId,
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                    ]),
+                ],
+            ])->resolve();
     }
 
     private function createDynamoDbClient(): DynamoDbClient

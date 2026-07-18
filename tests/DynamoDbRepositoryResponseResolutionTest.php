@@ -31,9 +31,12 @@ final class DynamoDbRepositoryResponseResolutionTest extends TestCase
     {
         $output = new PutItemOutput($this->createResponse());
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('putItem')->willReturn($output);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($output);
 
-        $this->createRepository($client)->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
+        $this->createRepository($client)
+            ->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
 
         $this->assertTrue($output->info()['resolved']);
     }
@@ -45,9 +48,12 @@ final class DynamoDbRepositoryResponseResolutionTest extends TestCase
     {
         $output = new DeleteItemOutput($this->createResponse());
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('deleteItem')->willReturn($output);
+        $client->expects($this->once())
+            ->method('deleteItem')
+            ->willReturn($output);
 
-        $this->createRepository($client)->remove('id');
+        $this->createRepository($client)
+            ->remove('id');
 
         $this->assertTrue($output->info()['resolved']);
     }

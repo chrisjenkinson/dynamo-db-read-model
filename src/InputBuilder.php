@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace chrisjenkinson\DynamoDbReadModel;
 
+use AsyncAws\DynamoDb\Input\BatchGetItemInput;
 use AsyncAws\DynamoDb\Input\CreateTableInput;
 use AsyncAws\DynamoDb\Input\DeleteItemInput;
 use AsyncAws\DynamoDb\Input\DeleteTableInput;
@@ -13,6 +14,7 @@ use AsyncAws\DynamoDb\Input\PutItemInput;
 use AsyncAws\DynamoDb\Input\QueryInput;
 use AsyncAws\DynamoDb\ValueObject\AttributeDefinition;
 use AsyncAws\DynamoDb\ValueObject\AttributeValue;
+use AsyncAws\DynamoDb\ValueObject\KeysAndAttributes;
 use AsyncAws\DynamoDb\ValueObject\KeySchemaElement;
 
 final class InputBuilder
@@ -92,6 +94,41 @@ final class InputBuilder
             'ProjectionExpression'     => '#Data',
             'ExpressionAttributeNames' => [
                 '#Data' => 'Data',
+            ],
+        ]);
+    }
+
+    /**
+     * @param list<string> $ids
+     */
+    public function buildBatchGetItemInput(string $table, string $name, array $ids): BatchGetItemInput
+    {
+        return new BatchGetItemInput([
+            'RequestItems' => [
+                $table => new KeysAndAttributes([
+                    'Keys' => array_map(static fn (string $id): array => [
+                        'Name' => new AttributeValue([
+                            'S' => $name,
+                        ]),
+                        'Id' => new AttributeValue([
+                            'S' => $id,
+                        ]),
+                    ], $ids),
+                    'ProjectionExpression'     => '#Id, #Data',
+                    'ExpressionAttributeNames' => [
+                        '#Id'   => 'Id',
+                        '#Data' => 'Data',
+                    ],
+                ]),
+            ],
+        ]);
+    }
+
+    public function buildBatchGetItemRetryInput(string $table, KeysAndAttributes $keysAndAttributes): BatchGetItemInput
+    {
+        return new BatchGetItemInput([
+            'RequestItems' => [
+                $table => $keysAndAttributes,
             ],
         ]);
     }
