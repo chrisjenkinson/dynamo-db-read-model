@@ -7,6 +7,7 @@ namespace chrisjenkinson\DynamoDbReadModel\Tests;
 use AsyncAws\Core\Response;
 use AsyncAws\Core\Test\Http\SimpleMockedResponse;
 use AsyncAws\DynamoDb\DynamoDbClient;
+use AsyncAws\DynamoDb\Result\BatchGetItemOutput;
 use AsyncAws\DynamoDb\Result\DeleteItemOutput;
 use AsyncAws\DynamoDb\Result\GetItemOutput;
 use AsyncAws\DynamoDb\Result\PutItemOutput;
@@ -31,9 +32,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $model = $repository->find('id');
         self::assertInstanceOf(RepositoryTestReadModel::class, $model);
@@ -49,9 +52,12 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $model = $repository->find('id');
         self::assertInstanceOf(RepositoryTestReadModel::class, $model);
@@ -64,10 +70,14 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $putItemOutput = new PutItemOutput($this->createResponse());
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('getItem');
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $repository->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
     }
@@ -75,9 +85,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
     public function test_it_rejects_saving_a_read_model_for_a_different_repository_class(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $this->expectException(UnexpectedReadModel::class);
 
@@ -89,10 +101,13 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $putItemOutput = new PutItemOutput($this->createResponse());
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
-        $model      = new RepositoryTestReadModel('id', 'name', 'foo', []);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
+        $model = new RepositoryTestReadModel('id', 'name', 'foo', []);
 
         $repository->save($model);
         $repository->save($model);
@@ -110,8 +125,9 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
                 $successfulOutput
             );
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
-        $model      = new RepositoryTestReadModel('id', 'name', 'foo', []);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
+        $model = new RepositoryTestReadModel('id', 'name', 'foo', []);
 
         try {
             $repository->save($model);
@@ -131,11 +147,16 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->once())->method('deleteItem')->willReturn($deleteItemOutput);
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->once())
+            ->method('deleteItem')
+            ->willReturn($deleteItemOutput);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
-        $model      = $repository->find('id');
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
+        $model = $repository->find('id');
         self::assertInstanceOf(RepositoryTestReadModel::class, $model);
 
         $repository->remove('id');
@@ -148,9 +169,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('payload-id', 'name', 'foo', [])));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $this->expectException(UnexpectedReadModel::class);
 
@@ -163,7 +186,8 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
         $factory = $this->createFactory($client);
 
@@ -181,7 +205,9 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
         $factory = $this->createFactory($client);
 
@@ -215,7 +241,9 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
         $factory    = $this->createFactory($client);
         $repository = $factory->create('items', RepositoryTestReadModel::class);
@@ -233,9 +261,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('query')
             ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $models = $repository->findAll();
         self::assertCount(1, $models);
@@ -250,9 +280,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('query')
             ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('id', 'name', 'foo', [])));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $models = $repository->findBy([
             'foo' => 'foo',
@@ -269,11 +301,36 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('query')
             ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('id', 'name', 'not-matching', [])));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         self::assertSame([], $repository->findBy([
+            'foo' => 'matching',
+        ]));
+        $repository->save(new RepositoryTestReadModel('id', 'name', 'not-matching', []));
+    }
+
+    public function test_it_snapshots_batch_loaded_models_even_when_an_additional_predicate_filters_them_out(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->once())
+            ->method('batchGetItem')
+            ->willReturn($this->batchGetOutputFor(new RepositoryTestReadModel('id', 'name', 'not-matching', [])));
+        $client->expects($this->never())
+            ->method('query');
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('putItem');
+
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
+
+        self::assertSame([], $repository->findBy([
+            'id'  => ['id'],
             'foo' => 'matching',
         ]));
         $repository->save(new RepositoryTestReadModel('id', 'name', 'not-matching', []));
@@ -285,9 +342,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('query')
             ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('payload-id', 'name', 'foo', []), 'physical-id'));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $this->expectException(UnexpectedReadModel::class);
 
@@ -300,9 +359,11 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $client->expects($this->once())
             ->method('query')
             ->willReturn($this->queryOutputFor(new RepositoryTestReadModel('payload-id', 'name', 'foo', []), 'physical-id'));
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $repository = $this->createFactory($client)->create('items', RepositoryTestReadModel::class);
+        $repository = $this->createFactory($client)
+            ->create('items', RepositoryTestReadModel::class);
 
         $this->expectException(UnexpectedReadModel::class);
 
@@ -319,11 +380,12 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
     private function getItemOutputFor(RepositoryTestReadModel $model): GetItemOutput
     {
         $output = $this->createStub(GetItemOutput::class);
-        $output->method('getItem')->willReturn([
-            'Data' => new AttributeValue([
-                'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
-            ]),
-        ]);
+        $output->method('getItem')
+            ->willReturn([
+                'Data' => new AttributeValue([
+                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                ]),
+            ]);
 
         return $output;
     }
@@ -333,17 +395,39 @@ final class DynamoDbRepositorySnapshotSuppressionTest extends TestCase
         $physicalId ??= $model->getId();
 
         $output = $this->createStub(QueryOutput::class);
-        $output->method('getCount')->willReturn(1);
-        $output->method('getItems')->willReturn([
-            [
-                'Id' => new AttributeValue([
-                    'S' => $physicalId,
-                ]),
-                'Data' => new AttributeValue([
-                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
-                ]),
-            ],
-        ]);
+        $output->method('getCount')
+            ->willReturn(1);
+        $output->method('getItems')
+            ->willReturn([
+                [
+                    'Id' => new AttributeValue([
+                        'S' => $physicalId,
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                    ]),
+                ],
+            ]);
+
+        return $output;
+    }
+
+    private function batchGetOutputFor(RepositoryTestReadModel $model): BatchGetItemOutput
+    {
+        $output = $this->createStub(BatchGetItemOutput::class);
+        $output->method('getResponses')
+            ->willReturn([
+                'table' => [[
+                    'Id' => new AttributeValue([
+                        'S' => $model->getId(),
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                    ]),
+                ]],
+            ]);
+        $output->method('getUnprocessedKeys')
+            ->willReturn([]);
 
         return $output;
     }

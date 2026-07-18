@@ -31,6 +31,7 @@ final class DynamoDbTableManager implements TableManagerInterface
     {
         $this->client->createTable($this->inputBuilder->buildCreateTableInput($this->table));
 
-        $this->client->tableExists($this->inputBuilder->buildDescribeTableInput($this->table))->wait();
+        $this->client->tableExists($this->inputBuilder->buildDescribeTableInput($this->table))
+            ->wait();
     }
 }

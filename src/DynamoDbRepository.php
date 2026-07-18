@@ -34,8 +34,40 @@ final class DynamoDbRepository implements Repository
             return [];
         }
 
+        $criteria = FindByCriteria::from($fields);
+
+        if (!$criteria->hasId) {
+            return $this->matching($this->findAll(), $fields);
+        }
+
+        if ($criteria->impossible || [] === $criteria->ids) {
+            return [];
+        }
+
+        if ($criteria->multiple) {
+            $models = $this->storage->findMany($criteria->ids);
+        } else {
+            $model  = $this->storage->find($criteria->ids[0]);
+            $models = null === $model ? [] : [$model];
+        }
+
+        if ([] === $criteria->remainingFields) {
+            return $models;
+        }
+
+        return $this->matching($models, $criteria->remainingFields);
+    }
+
+    /**
+     * @param Identifiable[]      $models
+     * @param array<string,mixed> $fields
+     *
+     * @return Identifiable[]
+     */
+    private function matching(array $models, array $fields): array
+    {
         $items = array_filter(
-            $this->findAll(),
+            $models,
             fn (Identifiable $model): bool => $this->matcher->matches($model, $fields)
         );
 

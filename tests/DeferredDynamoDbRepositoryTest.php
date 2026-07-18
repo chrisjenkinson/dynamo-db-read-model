@@ -7,12 +7,15 @@ namespace chrisjenkinson\DynamoDbReadModel\Tests;
 use AsyncAws\Core\Response;
 use AsyncAws\Core\Test\Http\SimpleMockedResponse;
 use AsyncAws\DynamoDb\DynamoDbClient;
+use AsyncAws\DynamoDb\Input\BatchGetItemInput;
 use AsyncAws\DynamoDb\Input\PutItemInput;
+use AsyncAws\DynamoDb\Result\BatchGetItemOutput;
 use AsyncAws\DynamoDb\Result\DeleteItemOutput;
 use AsyncAws\DynamoDb\Result\GetItemOutput;
 use AsyncAws\DynamoDb\Result\PutItemOutput;
 use AsyncAws\DynamoDb\Result\QueryOutput;
 use AsyncAws\DynamoDb\ValueObject\AttributeValue;
+use Broadway\ReadModel\Identifiable;
 use Broadway\ReadModel\Repository;
 use Broadway\ReadModel\SerializableReadModel;
 use Broadway\ReadModel\Testing\RepositoryTestReadModel;
@@ -77,7 +80,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_find_accepts_a_stringable_id(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('getItem');
+        $client->expects($this->never())
+            ->method('getItem');
 
         $repository = $this->createRepository($client);
         $model      = new RepositoryTestReadModel('id', 'name', 'foo', []);
@@ -90,19 +94,23 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_save_marks_the_model_dirty_without_writing_immediately(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
-        $this->createRepository($client)->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
+        $this->createRepository($client)
+            ->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
     }
 
     public function test_save_rejects_a_read_model_for_a_different_repository_class(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('putItem');
+        $client->expects($this->never())
+            ->method('putItem');
 
         $this->expectException(UnexpectedReadModel::class);
 
-        $this->createRepository($client)->save(new UnexpectedSerializableReadModel('wrong-class'));
+        $this->createRepository($client)
+            ->save(new UnexpectedSerializableReadModel('wrong-class'));
     }
 
     public function test_flush_persists_dirty_models(): void
@@ -110,7 +118,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $putItemOutput = new PutItemOutput($this->createResponse());
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
         $repository = $this->createRepository($client);
         $repository->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
@@ -171,7 +181,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_find_returns_the_saved_snapshot_state_after_the_original_model_is_mutated(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('getItem');
+        $client->expects($this->never())
+            ->method('getItem');
 
         $repository = $this->createMutableRepository($client);
         $model      = new MutableRepositoryTestReadModel('id', 'saved');
@@ -221,7 +232,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_find_all_preserves_the_identity_mapped_staged_save_snapshot(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor());
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor());
 
         $repository = $this->createMutableRepository($client);
         $repository->save(new MutableRepositoryTestReadModel('id', 'saved'));
@@ -240,15 +253,18 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_remove_marks_the_model_removed_without_deleting_immediately(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('deleteItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
 
-        $this->createRepository($client)->remove('id');
+        $this->createRepository($client)
+            ->remove('id');
     }
 
     public function test_remove_accepts_a_stringable_id(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('getItem');
+        $client->expects($this->never())
+            ->method('getItem');
 
         $repository = $this->createRepository($client);
         $repository->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
@@ -260,7 +276,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_removed_items_are_hidden_from_find_until_saved_again(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('getItem');
+        $client->expects($this->never())
+            ->method('getItem');
 
         $repository = $this->createRepository($client);
         $repository->remove('id');
@@ -273,7 +290,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $deleteItemOutput = new DeleteItemOutput($this->createResponse());
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('deleteItem')->willReturn($deleteItemOutput);
+        $client->expects($this->once())
+            ->method('deleteItem')
+            ->willReturn($deleteItemOutput);
 
         $repository = $this->createRepository($client);
         $repository->remove('id');
@@ -310,8 +329,11 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $putItemOutput = new PutItemOutput($this->createResponse());
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('deleteItem');
-        $client->expects($this->once())->method('putItem')->willReturn($putItemOutput);
+        $client->expects($this->never())
+            ->method('deleteItem');
+        $client->expects($this->once())
+            ->method('putItem')
+            ->willReturn($putItemOutput);
 
         $repository = $this->createRepository($client);
         $repository->remove('id');
@@ -325,8 +347,11 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $deleteItemOutput = new DeleteItemOutput($this->createResponse());
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('putItem');
-        $client->expects($this->once())->method('deleteItem')->willReturn($deleteItemOutput);
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->once())
+            ->method('deleteItem')
+            ->willReturn($deleteItemOutput);
 
         $repository = $this->createRepository($client);
         $repository->save(new RepositoryTestReadModel('id', 'name', 'foo', []));
@@ -353,8 +378,10 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     public function test_clear_discards_managed_dirty_and_removed_state(): void
     {
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->never())->method('putItem');
-        $client->expects($this->never())->method('deleteItem');
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
         $client->expects($this->once())
             ->method('getItem')
             ->willReturn($this->getItemOutputFor(new RepositoryTestReadModel('removed', 'name', 'foo', [])));
@@ -375,7 +402,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $dirty     = new RepositoryTestReadModel('dirty', 'dirty', 'foo', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($persisted));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($persisted));
 
         $repository = $this->createRepository($client);
         $repository->remove('persisted');
@@ -390,7 +419,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $kept    = new RepositoryTestReadModel('kept', 'kept', 'foo', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($removed, $kept));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($removed, $kept));
 
         $repository = $this->createRepository($client);
         $repository->remove('removed');
@@ -407,7 +438,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
 
         $this->expectException(UnexpectedReadModel::class);
 
-        $this->createRepository($client)->find('physical-id');
+        $this->createRepository($client)
+            ->find('physical-id');
     }
 
     public function test_find_all_rejects_rows_whose_physical_id_does_not_match_the_payload_id(): void
@@ -419,7 +451,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
 
         $this->expectException(UnexpectedReadModel::class);
 
-        $this->createRepository($client)->findAll();
+        $this->createRepository($client)
+            ->findAll();
     }
 
     public function test_find_all_preserves_the_identity_mapped_model_when_persisted_state_is_reloaded(): void
@@ -428,7 +461,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $second = new RepositoryTestReadModel('id', 'second', 'foo', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($second));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($second));
 
         $repository = $this->createRepository($client);
         $repository->save($first);
@@ -442,8 +477,12 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $second = new RepositoryTestReadModel('id', 'second', 'foo', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('getItem')->willReturn($this->getItemOutputFor($first));
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($second));
+        $client->expects($this->once())
+            ->method('getItem')
+            ->willReturn($this->getItemOutputFor($first));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($second));
 
         $repository = $this->createRepository($client);
         $model      = $repository->find('id');
@@ -457,7 +496,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $dirty     = new RepositoryTestReadModel('dirty', 'dirty', 'matched', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($persisted));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($persisted));
 
         $repository = $this->createRepository($client);
         $repository->save($dirty);
@@ -473,7 +514,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $dirty     = new RepositoryTestReadModel('dirty', 'dirty', 'unmatched', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($persisted));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($persisted));
 
         $repository = $this->createRepository($client);
         $repository->save($dirty);
@@ -489,7 +532,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $dirty     = new RepositoryTestReadModel('id', 'name', 'unmatched', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($persisted));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($persisted));
 
         $repository = $this->createRepository($client);
         $repository->save($dirty);
@@ -505,7 +550,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $dirty     = new RepositoryTestReadModel('id', 'name', 'matched', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($persisted));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($persisted));
 
         $repository = $this->createRepository($client);
         $repository->save($dirty);
@@ -520,7 +567,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $persisted = new RepositoryTestReadModel('id', 'name', 'matched', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($persisted));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($persisted));
 
         $repository = $this->createRepository($client);
         $repository->remove('id');
@@ -539,9 +588,10 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
 
         $this->expectException(UnexpectedReadModel::class);
 
-        $this->createRepository($client)->findBy([
-            'foo' => 'matched',
-        ]);
+        $this->createRepository($client)
+            ->findBy([
+                'foo' => 'matched',
+            ]);
     }
 
     public function test_find_by_filters_array_getters_by_contained_values(): void
@@ -550,7 +600,9 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $notMatching = new RepositoryTestReadModel('not-matching', 'not-matching', 'foo', ['other']);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($matching, $notMatching));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($matching, $notMatching));
 
         $repository = $this->createRepository($client);
 
@@ -565,13 +617,254 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $notMatching = new RepositoryTestReadModel('not-matching', 'other', 'foo', []);
 
         $client = $this->createMock(DynamoDbClient::class);
-        $client->expects($this->once())->method('query')->willReturn($this->queryOutputFor($matching, $notMatching));
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($matching, $notMatching));
 
         $repository = $this->createRepository($client);
 
         self::assertEquals([$matching], $repository->findBy([
             'name' => 'matched',
         ]));
+    }
+
+    public function test_find_by_scalar_id_uses_the_existing_local_first_find_path(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('batchGetItem');
+        $client->expects($this->never())
+            ->method('query');
+
+        $repository = $this->createRepository($client);
+        $repository->save(new RepositoryTestReadModel('id', 'saved', 'foo', []));
+
+        $found = $repository->find('id');
+
+        self::assertSame([$found], $repository->findBy([
+            'id' => 'id',
+        ]));
+    }
+
+    public function test_find_by_scalar_id_applies_remaining_predicates_to_the_identity_mapped_model(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->once())
+            ->method('getItem')
+            ->willReturn(
+                $this->getItemOutputFor(new RepositoryTestReadModel('id', 'name', 'matched', []))
+            );
+        $client->expects($this->never())
+            ->method('batchGetItem');
+        $client->expects($this->never())
+            ->method('query');
+
+        $repository = $this->createRepository($client);
+
+        self::assertSame(['id'], $this->modelIds($repository->findBy([
+            'id'  => 'id',
+            'foo' => 'matched',
+        ])));
+        self::assertSame([], $repository->findBy([
+            'id'  => 'id',
+            'foo' => 'other',
+        ]));
+    }
+
+    public function test_find_by_impossible_and_empty_id_criteria_do_not_read_or_materialize_dirty_state(): void
+    {
+        CountingDeserializationsReadModel::$deserializations = 0;
+
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('batchGetItem');
+        $client->expects($this->never())
+            ->method('query');
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
+
+        $repository = new DeferredDynamoDbRepository(
+            $this->createStorage($client, CountingDeserializationsReadModel::class),
+            new ReadModelFieldMatcher()
+        );
+        $repository->save(new CountingDeserializationsReadModel('dirty'));
+
+        self::assertSame([], $repository->findBy([]));
+        self::assertSame([], $repository->findBy([
+            'id' => null,
+        ]));
+        self::assertSame([], $repository->findBy([
+            'id' => [],
+        ]));
+        self::assertSame(0, CountingDeserializationsReadModel::$deserializations);
+    }
+
+    public function test_find_by_id_list_merges_local_and_persisted_models_in_unique_requested_order(): void
+    {
+        $managed = new RepositoryTestReadModel('managed', 'managed', 'matched', []);
+        $fetched = new RepositoryTestReadModel('fetched', 'fetched', 'matched', []);
+        $keys    = [];
+
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->once())
+            ->method('getItem')
+            ->willReturn($this->getItemOutputFor($managed));
+        $client->expects($this->never())
+            ->method('query');
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
+        $client->expects($this->once())
+            ->method('batchGetItem')
+            ->willReturnCallback(function (BatchGetItemInput $input) use (&$keys, $fetched): BatchGetItemOutput {
+                $keys = array_map(
+                    static fn (array $key): ?string => $key['Id']->getS(),
+                    $input->getRequestItems()['table']
+                        ->getKeys()
+                );
+
+                return $this->batchGetOutputFor($fetched);
+            });
+
+        $repository = $this->createRepository($client);
+        $managed    = $repository->find('managed');
+        $repository->save(new RepositoryTestReadModel('dirty', 'dirty', 'matched', []));
+        $dirty = $repository->find('dirty');
+        $repository->remove('removed');
+
+        $models = $repository->findBy([
+            'id' => ['fetched', 'removed', 'dirty', 'managed', 'missing', 'fetched'],
+        ]);
+
+        self::assertSame(['fetched', 'missing'], $keys);
+        self::assertSame(['fetched', 'dirty', 'managed'], $this->modelIds($models));
+        self::assertSame($dirty, $models[1]);
+        self::assertSame($managed, $models[2]);
+    }
+
+    public function test_find_by_id_list_materializes_staged_saves_locally_from_the_saved_snapshot(): void
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('batchGetItem');
+        $client->expects($this->never())
+            ->method('query');
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
+
+        $repository = $this->createMutableRepository($client);
+        $original   = new MutableRepositoryTestReadModel('dirty', 'saved');
+        $repository->save($original);
+        $original->rename('mutated');
+
+        $models = $repository->findBy([
+            'id' => ['dirty'],
+        ]);
+
+        self::assertCount(1, $models);
+        self::assertInstanceOf(MutableRepositoryTestReadModel::class, $models[0]);
+        self::assertSame('saved', $models[0]->getName());
+        self::assertSame($models[0], $repository->find('dirty'));
+    }
+
+    public function test_find_by_id_list_applies_remaining_predicates_after_merging_local_and_persistent_models(): void
+    {
+        $persisted = new RepositoryTestReadModel('persisted', 'persisted', 'matched', []);
+
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('query');
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
+        $client->expects($this->once())
+            ->method('batchGetItem')
+            ->willReturn($this->batchGetOutputFor($persisted));
+
+        $repository = $this->createRepository($client);
+        $repository->save(new RepositoryTestReadModel('dirty-match', 'dirty-match', 'matched', []));
+        $repository->save(new RepositoryTestReadModel('dirty-other', 'dirty-other', 'other', []));
+
+        self::assertSame(['dirty-match', 'persisted'], $this->modelIds($repository->findBy([
+            'id'  => ['dirty-match', 'dirty-other', 'persisted'],
+            'foo' => 'matched',
+        ])));
+    }
+
+    public function test_find_by_id_list_identity_maps_fetched_models(): void
+    {
+        $persisted = new RepositoryTestReadModel('persisted', 'persisted', 'matched', []);
+
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('query');
+        $client->expects($this->never())
+            ->method('putItem');
+        $client->expects($this->never())
+            ->method('deleteItem');
+        $client->expects($this->once())
+            ->method('batchGetItem')
+            ->willReturn($this->batchGetOutputFor($persisted));
+
+        $repository = $this->createRepository($client);
+        $found      = $repository->findBy([
+            'id' => ['persisted'],
+        ])[0];
+
+        self::assertSame($found, $repository->find('persisted'));
+    }
+
+    /**
+     * @dataProvider queryCriteriaWithoutExactLowercaseId
+     *
+     * @param array<string, mixed> $criteria
+     */
+    public function test_find_by_without_an_exact_lowercase_id_preserves_query_semantics(array $criteria): void
+    {
+        $model = new RepositoryTestReadModel('id', 'name', 'matched', []);
+
+        $client = $this->createMock(DynamoDbClient::class);
+        $client->expects($this->never())
+            ->method('getItem');
+        $client->expects($this->never())
+            ->method('batchGetItem');
+        $client->expects($this->once())
+            ->method('query')
+            ->willReturn($this->queryOutputFor($model));
+
+        self::assertSame(['id'], $this->modelIds($this->createRepository($client)->findBy($criteria)));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public function queryCriteriaWithoutExactLowercaseId(): iterable
+    {
+        yield 'ordinary field' => [[
+            'foo' => 'matched',
+        ]];
+        yield 'legacy Id' => [[
+            'Id' => 'id',
+        ]];
+        yield 'legacy ID' => [[
+            'ID' => 'id',
+        ]];
     }
 
     public function test_failed_flush_preserves_pending_dirty_state_for_retry(): void
@@ -658,7 +951,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client->expects($this->exactly(4))
             ->method('putItem')
             ->willReturnCallback(function ($input) use (&$attemptedIds): PutItemOutput {
-                $id             = $input->getItem()['Id']->getS();
+                $id = $input->getItem()['Id']
+                    ->getS();
                 $attemptedIds[] = $id;
 
                 if ('second' === $id && 2 === count($attemptedIds)) {
@@ -728,7 +1022,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
         $client->expects($this->exactly(4))
             ->method('deleteItem')
             ->willReturnCallback(function ($input) use (&$attemptedRemoves): DeleteItemOutput {
-                $id                 = $input->getKey()['Id']->getS();
+                $id = $input->getKey()['Id']
+                    ->getS();
                 $attemptedRemoves[] = $id;
 
                 if ('second' === $id && 2 === count($attemptedRemoves)) {
@@ -820,11 +1115,12 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     private function getItemOutputFor(RepositoryTestReadModel $model): GetItemOutput
     {
         $output = $this->createStub(GetItemOutput::class);
-        $output->method('getItem')->willReturn([
-            'Data' => new AttributeValue([
-                'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
-            ]),
-        ]);
+        $output->method('getItem')
+            ->willReturn([
+                'Data' => new AttributeValue([
+                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                ]),
+            ]);
 
         return $output;
     }
@@ -832,7 +1128,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     private function queryOutputFor(RepositoryTestReadModel ...$models): QueryOutput
     {
         $output = $this->createStub(QueryOutput::class);
-        $output->method('getCount')->willReturn(count($models));
+        $output->method('getCount')
+            ->willReturn(count($models));
 
         $items = array_map(function (RepositoryTestReadModel $model): array {
             return [
@@ -845,7 +1142,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
             ];
         }, $models);
 
-        $output->method('getItems')->willReturn($items);
+        $output->method('getItems')
+            ->willReturn($items);
 
         return $output;
     }
@@ -853,19 +1151,51 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
     private function queryOutputForPhysicalId(string $physicalId, RepositoryTestReadModel $model): QueryOutput
     {
         $output = $this->createStub(QueryOutput::class);
-        $output->method('getCount')->willReturn(1);
-        $output->method('getItems')->willReturn([
-            [
-                'Id' => new AttributeValue([
-                    'S' => $physicalId,
-                ]),
-                'Data' => new AttributeValue([
-                    'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
-                ]),
-            ],
-        ]);
+        $output->method('getCount')
+            ->willReturn(1);
+        $output->method('getItems')
+            ->willReturn([
+                [
+                    'Id' => new AttributeValue([
+                        'S' => $physicalId,
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                    ]),
+                ],
+            ]);
 
         return $output;
+    }
+
+    private function batchGetOutputFor(RepositoryTestReadModel ...$models): BatchGetItemOutput
+    {
+        $output = $this->createStub(BatchGetItemOutput::class);
+        $output->method('getResponses')
+            ->willReturn([] === $models ? [] : [
+                'table' => array_map(fn (RepositoryTestReadModel $model): array => [
+                    'Id' => new AttributeValue([
+                        'S' => $model->getId(),
+                    ]),
+                    'Data' => new AttributeValue([
+                        'S' => (new JsonEncoder())->encode((new SimpleInterfaceSerializer())->serialize($model)),
+                    ]),
+                ], $models),
+            ]);
+        $output->method('getUnprocessedKeys')
+            ->willReturn([]);
+
+        return $output;
+    }
+
+    /**
+     * @param Identifiable[] $models
+     *
+     * @return list<string>
+     */
+    private function modelIds(array $models): array
+    {
+        return array_map(static fn (Identifiable $model): string => $model->getId(), $models);
     }
 
     private function createResponse(): Response
@@ -880,7 +1210,8 @@ final class DeferredDynamoDbRepositoryTest extends TestCase
      */
     private function decodePutItemPayload(PutItemInput $input): array
     {
-        $data = $input->getItem()['Data']->getS();
+        $data = $input->getItem()['Data']
+            ->getS();
         self::assertIsString($data);
 
         return json_decode($data, true, flags: JSON_THROW_ON_ERROR);
@@ -942,5 +1273,40 @@ final class MutableRepositoryTestReadModel implements SerializableReadModel
     public static function deserialize(array $data): self
     {
         return new self($data['id'], $data['name']);
+    }
+}
+
+final class CountingDeserializationsReadModel implements SerializableReadModel
+{
+    public static int $deserializations = 0;
+
+    public function __construct(
+        private readonly string $id
+    ) {
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return array{id: string}
+     */
+    public function serialize(): array
+    {
+        return [
+            'id' => $this->id,
+        ];
+    }
+
+    /**
+     * @param array{id: string} $data
+     */
+    public static function deserialize(array $data): self
+    {
+        ++self::$deserializations;
+
+        return new self($data['id']);
     }
 }
